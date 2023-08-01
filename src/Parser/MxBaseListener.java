@@ -1,4 +1,4 @@
-// Generated from /mnt/d/compiler/MxCompiler/src/parser/Mx.g4 by ANTLR 4.12.0
+// Generated from D:/compiler/MxCompiler/src/Parser\Mx.g4 by ANTLR 4.12.0
 package Parser;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -89,13 +89,13 @@ public class MxBaseListener implements MxListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterSuite(MxParser.SuiteContext ctx) { }
+	@Override public void enterBlock(MxParser.BlockContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitSuite(MxParser.SuiteContext ctx) { }
+	@Override public void exitBlock(MxParser.BlockContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -293,18 +293,6 @@ public class MxBaseListener implements MxListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterFuncExpr(MxParser.FuncExprContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitFuncExpr(MxParser.FuncExprContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterArrayExpr(MxParser.ArrayExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -312,6 +300,18 @@ public class MxBaseListener implements MxListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitArrayExpr(MxParser.ArrayExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterPreSelfExpr(MxParser.PreSelfExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitPreSelfExpr(MxParser.PreSelfExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -353,6 +353,18 @@ public class MxBaseListener implements MxListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterCallExpr(MxParser.CallExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCallExpr(MxParser.CallExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterAssignExpr(MxParser.AssignExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -372,6 +384,18 @@ public class MxBaseListener implements MxListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitNewArrayExpr(MxParser.NewArrayExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterParenExpr(MxParser.ParenExprContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitParenExpr(MxParser.ParenExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

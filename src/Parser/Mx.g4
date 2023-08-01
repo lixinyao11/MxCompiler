@@ -1,23 +1,24 @@
 grammar Mx;
 
-program: (funDef | classDef | varDef)* EOF;
+program: (funDef | classDef | (varDef ';'))* EOF;
 
-classDef : Class Identifier '{' (varDef | classBuild | funDef)* '}' ';';
+classDef : Class Identifier '{' ((varDef ';') | classBuild | funDef)* '}' ';';
 
-classBuild : Identifier '('')' suite;
-funDef : returnType Identifier '(' paraList? ')' suite;
+classBuild : Identifier '('')' block;
+
+funDef : returnType Identifier '(' paraList? ')' block;
 returnType : Void | type;
-paraList : type Identifier (Comma type Identifier)*; // 默认值？
+paraList : type Identifier (Comma type Identifier)*;
 
-suite : '{' statement* '}';
+block : '{' statement* '}';
 
 statement
-    : suite                                                                     #blockStmt
-    | varDef                                                                    #vardefStmt
-    | If expression trueStmt=statement
-        (Else falseStmt=statement)?                                             #ifStmt
+    : block                                                                     #blockStmt
+    | varDef ';'                                                                #vardefStmt
+    | If expression thenStmt=statement
+        (Else elseStmt=statement)?                                             #ifStmt
     | While '(' expression ')' statement                                        #whileStmt
-    | For '(' expression? ';' expression? ';' expression? ')' statement #forStmt
+    | For '(' init=expression? ';' cond=expression? ';' step=expression? ')' statement #forStmt
     | Return expression? ';'                                                    #returnStmt
     | Break ';'                                                                 #breakStmt
     | Continue ';'                                                              #continueStmt
@@ -25,7 +26,7 @@ statement
     | ';'                                                                       #emptyStmt
     ;
 
-varDef : type Identifier (Assign expression)? (Comma Identifier (Assign expression)?)* Semi;
+varDef : type Identifier (Assign expression)? (Comma Identifier (Assign expression)?)*;
 type : typeName ('['']')*;
 typeName : baseType | Identifier;
 baseType : Bool | Int | String;
@@ -33,12 +34,12 @@ baseType : Bool | Int | String;
 expression
     : New typeName '[' expression ']' ('['']')*                                 #newArrayExpr
     | New typeName ('(' ')')?                                                   #newVarExpr
-    | expression '(' (expression (Comma expression)*)? ')'                      #funcExpr
+    | expression '(' (expression (Comma expression)*)? ')'                      #callExpr
     | expression '[' expression ']'                                             #arrayExpr
     | expression op=Member Identifier                                           #memberExpr
     | expression op=(Increment | Decrement)                                     #unaryExpr
-    | <assoc=right> op=(Increment | Decrement) expression                       #unaryExpr
     | <assoc=right> op=(Not | LogicNot | Minus | Plus) expression               #unaryExpr
+    | <assoc=right> op=(Increment | Decrement) expression                       #preSelfExpr
     | expression op=(Mul | Div | Mod) expression                                #binaryExpr
     | expression op=(Plus | Minus) expression                                   #binaryExpr
     | expression op=(LeftShift | RightShift) expression                         #binaryExpr
@@ -51,12 +52,12 @@ expression
     | expression op=LogicOr expression                                          #binaryExpr
     | expression '?' expression ':' expression                                  #conditionalExpr
     | <assoc=right> expression op=Assign expression                             #assignExpr
+    | '(' expression ')'                                                        #parenExpr
     | primary                                                                   #atomExpr
     ;
 
 primary
-    : '(' expression ')'
-    | Identifier
+    : Identifier
     | literal
     | This
     ;
