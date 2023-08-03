@@ -5,8 +5,8 @@ import Util.Position;
 import AST.*;
 
 public class ForStmtNode extends StmtNode {
-  public ExprNode init = null, cond = null, step = null;
-  public StmtNode body = null;
+  public ExprNode condExpr = null, stepExpr = null;
+  public StmtNode initStmt = null, body = null;
 
   public ForStmtNode(Position pos) {
     super(pos);

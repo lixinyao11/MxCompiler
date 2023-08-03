@@ -1,13 +1,12 @@
 package AST;
 
 import Util.Position;
-import Util.Type;
+import Util.Type.*;
 import java.util.ArrayList;
 import AST.Stmt.*;
 
 public class FuncDefNode extends ASTNode {
-  public boolean isVoid = false;
-  public Type retType = null;
+  public ReturnType retType = null;
   public String name = null;
   public ParaListNode paraList = null;
   public ArrayList<StmtNode> stmt_List = null; // block

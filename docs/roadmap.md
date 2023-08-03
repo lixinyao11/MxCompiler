@@ -52,7 +52,6 @@ x operator x
 
 # mark
 1. 重新编译g4！！
-2. arrayExpr取下标操作可能出现嵌套，如二维数组a，a[1][2]
-
-
+2. arrayExpr取下标操作可能出现嵌套，如二维数组a，a[1][2\]
+3. 如果return语句缺失且非void要报错，但不考虑return语句能否到达，也不考虑是否每个分支都return
 

@@ -18,7 +18,7 @@ statement
     | If expression thenStmt=statement
         (Else elseStmt=statement)?                                             #ifStmt
     | While '(' expression ')' statement                                        #whileStmt
-    | For '(' init=expression? ';' cond=expression? ';' step=expression? ')' statement #forStmt
+    | For '(' initStmt=statement condExpr=expression? ';' stepExpr=expression? ')' statement #forStmt
     | Return expression? ';'                                                    #returnStmt
     | Break ';'                                                                 #breakStmt
     | Continue ';'                                                              #continueStmt

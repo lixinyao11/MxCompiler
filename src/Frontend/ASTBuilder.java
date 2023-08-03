@@ -8,7 +8,7 @@ import Parser.MxParser;
 import org.antlr.v4.runtime.misc.Pair;
 //import Util.error.semanticError;
 import Util.Position;
-import Util.Type;
+import Util.Type.*;
 
 public class ASTBuilder extends MxBaseVisitor<ASTNode> {
   @Override
@@ -50,9 +50,9 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
     func.name = ctx.Identifier().getText();
 
     if (ctx.returnType().Void() != null) {
-      func.isVoid = true;
+      func.retType = new ReturnType("void", 0);
     } else {
-      func.retType = new Type(ctx.returnType().type().typeName().getText(), ctx.returnType().type().LBracket().size());
+      func.retType = new ReturnType(ctx.returnType().type().typeName().getText(), ctx.returnType().type().LBracket().size());
     }
 
     func.paraList = (ParaListNode) visitParaList(ctx.paraList());
@@ -68,7 +68,7 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
   public ASTNode visitParaList(MxParser.ParaListContext ctx) {
     ParaListNode paraList = new ParaListNode(new Position(ctx));
     for (int i = 0; i < ctx.type().size(); ++i) {
-      Type type = new Type(ctx.type(i).typeName().getText(), ctx.type(i).LBracket().size());
+      VarType type = new VarType(ctx.type(i).typeName().getText(), ctx.type(i).LBracket().size());
       String name = ctx.Identifier(i).getText();
       paraList.paras.add(new Pair<>(type, name));
     }
@@ -111,13 +111,13 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
   @Override
   public ASTNode visitForStmt(MxParser.ForStmtContext ctx) {
     ForStmtNode forStmt = new ForStmtNode(new Position(ctx));
-    if (ctx.init != null)
-      forStmt.init = (ExprNode) visit(ctx.init);
-    if (ctx.cond != null)
-      forStmt.cond = (ExprNode) visit(ctx.cond);
-    if (ctx.step != null)
-      forStmt.step = (ExprNode) visit(ctx.step);
-    forStmt.body = (StmtNode) visit(ctx.statement());
+    if (ctx.initStmt != null)
+      forStmt.initStmt = (StmtNode) visit(ctx.initStmt);
+    if (ctx.condExpr != null)
+      forStmt.condExpr = (ExprNode) visit(ctx.condExpr);
+    if (ctx.stepExpr != null)
+      forStmt.stepExpr = (ExprNode) visit(ctx.stepExpr);
+    forStmt.body = (StmtNode) visit(ctx.statement(1));
     return forStmt;
   }
 
@@ -154,7 +154,7 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
   @Override
   public ASTNode visitVarDef(MxParser.VarDefContext ctx) {
     VarDefNode varDef = new VarDefNode(new Position(ctx));
-    varDef.type = new Type(ctx.type().typeName().getText(), ctx.type().LBracket().size());
+    varDef.type = new VarType(ctx.type().typeName().getText(), ctx.type().LBracket().size());
     for (int i = 0; i < ctx.Identifier().size(); ++i) {
       varDef.varList.add(new Pair<>(ctx.Identifier(i).getText(), ctx.expression(i) == null ? null : (ExprNode) visit(ctx.expression(i))));
     }
@@ -164,7 +164,7 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
   @Override
   public ASTNode visitNewVarExpr(MxParser.NewVarExprContext ctx) {
     NewExprNode newExpr = new NewExprNode(new Position(ctx));
-    newExpr.type = new Type(ctx.typeName().getText(), 0);
+    newExpr.varType = new VarType(ctx.typeName().getText(), 0);
     return newExpr;
   }
 
@@ -216,9 +216,9 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
       } else if (ctx.primary().literal().Null() != null) {
         atomExpr.isNull = true;
       } else if (ctx.primary().literal().IntegerConst() != null) {
-        atomExpr.isInt = true;
+        atomExpr.isIntConst = true;
       } else if (ctx.primary().literal().StringConst() != null) {
-        atomExpr.isString = true;
+        atomExpr.isStringConst = true;
       } else {
         throw new RuntimeException("AtomExpr Error");
       }
@@ -256,7 +256,7 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
   @Override
   public ASTNode visitNewArrayExpr(MxParser.NewArrayExprContext ctx) {
     NewExprNode newExpr = new NewExprNode(new Position(ctx));
-    newExpr.type = new Type(ctx.typeName().getText(), ctx.LBracket().size());
+    newExpr.varType = new VarType(ctx.typeName().getText(), ctx.LBracket().size());
     newExpr.expr = (ExprNode) visit(ctx.expression());
     return newExpr;
   }

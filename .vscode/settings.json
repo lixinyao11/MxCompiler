@@ -1,0 +1,6 @@
+{
+  "java.project.referencedLibraries": [
+    "/usr/lib/local/**/*.jar",
+    "/usr/local/lib/antlr-4.7.2-complete.jar"
+  ]
+}

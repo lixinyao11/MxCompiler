@@ -1,6 +1,9 @@
 package Util.Scope;
 
+import Util.*;
+import Util.SemanticError;
 import Util.Decl.*;
+import Util.Type.*;
 
 public class GlobalScope extends BuiltinScope {
 
@@ -8,13 +11,19 @@ public class GlobalScope extends BuiltinScope {
     super();
   }
 
-  public void addClass(String name, ClassDecl classDecl) {
+  public void addClassSafe(String name, ClassDecl classDecl, Position pos) {
+    if (classdcls.containsKey(name))
+      throw new SemanticError("class " + name + " redefined", pos);
     classdcls.put(name, classDecl);
   }
-  public void addFunc(String name, FuncDecl funcDecl) {
+
+  public void addFuncSafe(String name, FuncDecl funcDecl, Position pos) {
+    if (funcdcls.containsKey(name))
+      throw new SemanticError("function " + name + " redefined", pos);
     funcdcls.put(name, funcDecl);
   }
 
+  @Override
   public FuncDecl getFuncDecl(String name) {
     if (!funcdcls.containsKey(name))
       return null;
@@ -27,4 +36,18 @@ public class GlobalScope extends BuiltinScope {
     return classdcls.get(name);
   }
 
+  @Override
+  public boolean isInLoop() {
+    return false;
+  }
+
+  @Override
+  public void returnsType(ReturnType type, Position pos) {
+    throw new SemanticError("return statement not in a function", pos);
+  }
+
+  @Override
+  public String isInClass() {
+    return null;
+  }
 }

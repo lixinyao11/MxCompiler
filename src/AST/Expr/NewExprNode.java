@@ -1,12 +1,12 @@
 package AST.Expr;
 
 import Util.Position;
-import Util.Type;
+import Util.Type.*;
 import AST.*;
 
 public class NewExprNode extends ExprNode {
-  public Type type = null;
-  public ExprNode expr = null;
+  public VarType varType = null;
+  public ExprNode expr = null; // for array: typename[expr][][]...
 
   public NewExprNode(Position pos) {
     super(pos);

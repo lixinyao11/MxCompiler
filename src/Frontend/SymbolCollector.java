@@ -4,7 +4,6 @@ import AST.*;
 import AST.Expr.*;
 import AST.Stmt.*;
 import Util.Decl.*;
-import Util.*;
 import Util.Scope.*;
 
 public class SymbolCollector implements ASTVisitor {
@@ -21,16 +20,15 @@ public class SymbolCollector implements ASTVisitor {
   }
 
   public void visit(FuncDefNode node) {
-    if (globalScope.getFuncDecl(node.name) != null)
-      throw new SemanticError("Function " + node.name + " has been defined", node.pos);
-    globalScope.addFunc(node.name, new FuncDecl(node));
+    globalScope.addFuncSafe(node.name, new FuncDecl(node), node.pos);
+    // ensure functions in globalScope are not redefined
   }
 
   public void visit(ClassDefNode node) {
-    if (globalScope.getClassDecl(node.name) != null)
-      throw new SemanticError("Class " + node.name + " has been defined", node.pos);
+    globalScope.addClassSafe(node.name, new ClassDecl(node), node.pos);
+    // ensure class in globalScope are not redefined
     node.scope = new ClassScope(globalScope, node);
-    globalScope.addClass(node.name, new ClassDecl(node));
+    // ensure variables and functions in class are not redefined repectively
   }
   public void visit(VarDefNode node) {}
   public void visit(ParaListNode node) {}

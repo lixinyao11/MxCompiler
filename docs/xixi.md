@@ -194,9 +194,7 @@ need to override the visit functions in BaseVisitor
 4. 全局变量和局部变量不支持前向引用，作用域为声明开始的位置直到最近的一个块的结束位置
 5. 函数和类的声明都应该在顶层，作用域为全局，支持前向引用（Forward Reference）
 6. 不同作用域的时候，内层作用域可以遮蔽外层作用域的名字
-7. 函数名和变量名不允许重复，但是变量名和类名可以重复
-8. 在同一个作用域内，变量，函数，和类，都分别不能同名（即变量不能和变量同名，其余同理），如果重名视为语法错误。
-9. 在同一个作用域内，变量和函数可以重名，但是类不可以和变量、函数重名。
+7. 同一作用域，函数名和变量名不允许重复，但是变量名和类名可以重复
 
 **注意**：诸如 `for` 等表达式没有大括号也会引入一个新的作用域
 
@@ -218,6 +216,14 @@ need to override the visit functions in BaseVisitor
 
 保存varDefs, funcdcls(SymbolCollector)
 
+#### FuncScope extends Scope
+
+保存returnType, isReturned，处理函数的return问题
+
+#### LoopScope extends Scope
+
+处理continue，break问题
+
 ### symbolCollector
 
 先visit一遍AST，解决前向引用的问题
@@ -227,6 +233,40 @@ need to override the visit functions in BaseVisitor
 2. 每个classDefNode中的funcdef，vardef
 
 3. 注意内建函数和内置类型，在初始化globalScope时需放入其中（e.g. 字符串的处理）
+
+#### 重名问题
+
+1. globalScope中：
+
+   1. 函数名不与类名重复
+
+      SemanticChecker: visit FuncDefNode时先检查
+
+   2. 函数名不能与变量名重复
+
+      
+
+   3. *类、函数名分别各自不重复*
+
+      *SymbolCollector*
+
+   4. 变量名分别各自不重复
+
+      SemanticChecker
+
+2. classScope中：
+
+   1. 变量名可以覆盖全局变量名、类名、函数名
+
+   2. 函数名可以覆盖全局的所有名字
+
+   3. 变量名与函数名不重复 
+
+      SemanticChecker：visit FuncDefNode时先检查
+
+   4. *变量名、函数名分别各自不重复* 
+
+      *在SymbolCollector中处理*
 
 #### 内置类型
 
@@ -273,6 +313,86 @@ need to override the visit functions in BaseVisitor
 
 ### semanticChecker
 
+#### new Scope
+
+1. BlockStmt
+2. FuncDef(visit paraList之前)
+3. ClassDef (classScope)
+4. thenStmt, elseStmt
+5. statement in WhileStmt
+6. ForStmt
+
+#### visit VarDef: 
+
+1. in globalScope: 
+   1. 检查type是否是内建类型或定义过的class
+   2. 依次遍历每个变量
+      1. 检查是否与全局函数重名
+      2. 检查是否与已有全局变量重名
+      3. visitExpr，判断type是否一致
+      4. 加入vars
+2. in classScope: 
+   1. 检查type是否是内建类型或定义过的class
+   2. 依次遍历每个变量
+      1. visitExpr，判断type是否一致
+3. in Scope:
+   1. typeCheck
+   2. 依次遍历每个变量
+      1. 检查是否与currentScope的vars重名
+      2. 判断Expr的type
+      3. 加入vars
+
+#### Expr:
+
+visit过程中进行类型检查和类型推断，保存每个`ExprNode`的`type`和`isLeftValue`
+
+遇到变量时，递归向上查找变量是否被定义过，找不到变量为error
+
+遇到自定义类型，直接查找`globalScope`
+
+遇到函数，递归向上查找，遇到`classScope`和`globalScope`都尝试查找，如果`globalScope`也没有说明找不到定义
+
+##### callExpr
+
+检查func是function，用type中保存的FuncDecl检查paras
+
+##### AtomExpr
+
+对`identifier`
+
+变量名或函数名
+
+向上递归查找，若为variable，保存类型。
+
+若为function，保存FuncDef(可能在globalScope或classScope中找到)
+
+##### BinaryExpr
+
+1. 表达式两边的对象类型必须一致。而表达式两边的值可以是常量或变量
+2. `bool` 类型仅可做 `==` 和 `!=` 运算
+3. 数组对象仅可以和常量 `null` 进行 `==` 和 `!=` 运算
+4. 类对象的 `==` 和 `!=` 运算为比较内存地址，其它运算符重载是未定义的
+5. 字符串
+   1. `+` 表示字符串拼接
+   2. `==`，`!=` 比较两个字符串内容是否完全一致（不是内存地址）
+   3. `<`，`>`，`<=`，`>=` 用于比较字典序大小
+   4. 字符串参与其他双目运算为语法错误，且字符串仅可与相同类型对象进行运算（和`null`也不可以）
+
+##### AssignExpr
+
+1. 将字符串对象赋值为 `null` 是语法错误
+
+2. 左值
+   1. 函数的形参变量
+   2. 全局变量和局部变量
+   3. 类的一个成员
+   4. 数组对象的一个元素
+3. 非法左值：
+   1. this
+   2. 常量
+
+string == null
+
 #### 类型检查
 
 ##### 类型推断
@@ -294,3 +414,4 @@ need to override the visit functions in BaseVisitor
 #### 控制流语句
 
 break continue等
+

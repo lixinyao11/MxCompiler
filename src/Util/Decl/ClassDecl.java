@@ -1,12 +1,12 @@
 package Util.Decl;
 
-import Util.Type;
+import Util.Type.*;
 import java.util.HashMap;
 import AST.*;
 
 public class ClassDecl {
   String name;
-  HashMap<String, Type> varDcls = null;
+  HashMap<String, VarType> varDcls = null;
   HashMap<String, FuncDecl> funcDcls = null;
   
   public ClassDecl(String name) {
@@ -35,5 +35,17 @@ public class ClassDecl {
 
   public void addFunc(FuncDecl funcDecl) {
     funcDcls.put(funcDecl.name, funcDecl);
+  }
+
+  public FuncDecl getFunc(String name) {
+    if (!funcDcls.containsKey(name))
+      return null;
+    return funcDcls.get(name);
+  }
+
+  public VarType getVar(String name) {
+    if (!varDcls.containsKey(name))
+      return null;
+    return varDcls.get(name);
   }
 }

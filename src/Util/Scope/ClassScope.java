@@ -3,25 +3,39 @@ package Util.Scope;
 import java.util.HashMap;
 import AST.*;
 import Util.Decl.FuncDecl;
+import Util.*;
 
 public class ClassScope extends Scope {
   HashMap<String, FuncDecl> funcdcls = null;
-  
-  public ClassScope(Scope parent) {
-    super(parent);
-    this.funcdcls = new HashMap<>();
-  }
+  String className = null;
 
   public ClassScope(Scope parent, ClassDefNode classDef) {
     super(parent);
+    this.className = classDef.name;
     this.funcdcls = new HashMap<>();
     for (var def : classDef.funcDef_list) {
+      if (funcdcls.containsKey(def.name))
+        throw new SemanticError("ClassScope: " + classDef.name + "duplicated function name", def.pos);
       funcdcls.put(def.name, new FuncDecl(def));
     }
     for (var def : classDef.varDef_list) {
       for (var i : def.varList) {
+        if (varDefs.containsKey(i.a))
+          throw new SemanticError("ClassScope: " + classDef.name + "duplicated variable name", def.pos);
         varDefs.put(i.a, def.type);
       }
     }
+  }
+
+  @Override
+  public String isInClass() {
+    return className;
+  }
+
+  @Override
+  public FuncDecl getFuncDecl(String name) {
+    if (funcdcls.containsKey(name))
+      return funcdcls.get(name);
+    return parentScope.getFuncDecl(name);
   }
 }

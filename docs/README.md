@@ -59,7 +59,6 @@
             - [12.2. 双目运算](#122-双目运算)
             - [12.3. 内建方法](#123-内建方法)
         - [13. 作用域](#13-作用域)
-        - [14. 命名空间](#14-命名空间)
 - [三、编译说明](#三编译说明)
     - [1. 程序输入输出](#1-程序输入输出)
     - [2. 评测指标和基准线的划分](#2-评测指标和基准线的划分)
@@ -668,7 +667,7 @@ continue;
 4. 全局变量和局部变量不支持前向引用，作用域为声明开始的位置直到最近的一个块的结束位置
 5. 函数和类的声明都应该在顶层，作用域为全局，支持前向引用（Forward Reference）
 6. 不同作用域的时候，内层作用域可以遮蔽外层作用域的名字
-7. 函数名和变量名不允许重复，但是变量名和类名可以重复
+7. 函数名和变量名不允许重复，类名和函数名不允许重复，但是变量名和类名可以重复
 
 **注意**：诸如 `for` 等表达式没有大括号也会引入一个新的作用域，如下：
 
@@ -677,17 +676,9 @@ int a = 0;
 for(;;) int a = 0;
 ```
 
-#### 14. 命名空间
-
-在同一个作用域内，变量，函数，和类，都分别不能同名（即变量不能和变量同名，其余同理），如果重名视为语法错误。
-
-在同一个作用域内，变量和函数可以重名，但是类不可以和变量、函数重名。
-
 ## 三、编译说明
 
 ### 1. 程序输入输出
-
-目标程序将通过`stdin`传入，编译后的程序应当输出到repo根目录下的 `output.s` 文件，同时将需要链接的 `builtin.s` 文件也放在 repo 根目录下。
 
 **编译要求：**
 
@@ -697,40 +688,20 @@ gcc构筑命令：`./configure --prefix=/opt/riscv --with-arch=rv32ima --with-ab
 
 **基本的运行阶段：**
 
-1. 生成你的编译器 / Build your compiler : 使用系统编译器编译你的编译器代码构建你的编译器的过程。
-2. 编译目标代码 / Compile target code : 使用构建的编译器编译Mx*语言，如果编译正确输出目标汇编代码，反之编译器应当以非0返回值退出。
-3. 执行目标代码 / Execute target code : 使用模拟器运行你的代码的过程。
+1. 生成你的编译器 / Build your compiler: 使用系统编译器编译你的编译器代码构建你的编译器的过程。
+2. 编译目标代码 / Compile target code: 使用构建的编译器编译 Mx* 语言，如果编译正确输出目标汇编代码，反之编译器应当以非0返回值退出。
+3. 执行目标代码 / Execute target code: 使用模拟器运行你的代码的过程。（模拟器地址： <https://github.com/Engineev/ravel>）
 
 ### 2. 评测指标和基准线的划分
 
 **评测指标**：时间、准确性
 
-1. 时间：采用模拟器运行，计算准确的周期数作为程序运行时间。对于同一个Commit不会重复评测。
+1. 时间：采用模拟器运行，计算准确的周期数作为程序运行时间。对于同一个 Commit 不会重复评测。
 2. 准确性：给定输入的情况下，评测输出和程序返回值是否和标准相同。评测输出**不会去除行末空格换行符，也不会去除文末换行符**
 
 ### 3. FAQ
 
-有任何问题请在这个Repo直接发起Issue，对语言规则有疑问的使用Question标签，发现编译器评测的bug的使用Bug标签，对测试集的问题/发现测试集重的bug的使用`benchmark and data`/`benchmark-URGENT`标签。
-
-1. 关于提交：
-
-你需要提交一个repo，且repo的根目录中必须包括：build.bash（类似于makefile中的make all的角色），semantic.bash（类似于g++ -fsyntax-only），codegen.bash（类似于g++ xxx.cpp），optimize.bash（类似于g++ xxx.cpp -O2）。
-
-2. 关于内部已经存储的库：
-
-为了减少git所消耗的时间，所需要的部分依赖库已经集成在Docker中，以下均为绝对路径。
-
-| Component | File Name | Path | Language |
-|:-----------:|-----------|------|:----------:|
-|ANTLR 4.9.1| antlr-4.9.1-complete.jar |`/ulib/java/antlr-4.9.1-complete.jar`|Java|
-|ANTLR 4.9| antlr-4.9-complete.jar |`/ulib/java/antlr-4.9-complete.jar`|Java|
-|ANTLR 4.8| antlr-4.8-complete.jar |`/ulib/java/antlr-4.8-complete.jar`|Java|
-|ANTLR 4.7.2| antlr-4.7.2-complete.jar |`/ulib/java/antlr-4.7.2-complete.jar`|Java|
-|ANTLR 4.7.1| antlr-4.7.1-complete.jar |`/ulib/java/antlr-4.7.1-complete.jar`|Java|
-|ANTLR 4.7| antlr-4.7-complete.jar |`/ulib/java/antlr-4.7-complete.jar`|Java|
-|ANTLR 4.6| antlr-4.6-complete.jar |`/ulib/java/antlr-4.6-complete.jar`|Java|
-
-需要的库请联系TA，放入Docker。
+有任何问题请在这个 Repo 直接发起 Issue，对语言规则有疑问的使用 Question 标签，发现编译器评测的 bug 的使用 Bug 标签，对测试集的问题/发现测试集重的 bug 的使用 benchmark and data/benchmark-URGENT 标签。
 
 ## Document Note
 
