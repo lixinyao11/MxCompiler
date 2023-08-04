@@ -6,7 +6,7 @@ import AST.*;
 
 public class IfStmtNode extends StmtNode {
   public ExprNode cond = null;
-  public StmtNode thenStmt = null, elseStmt = null;
+  public StmtNode thenStmt = null, elseStmt = null; // thenStmt can be null (emptyStmt)
 
   public IfStmtNode(Position pos) {
     super(pos);

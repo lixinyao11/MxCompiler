@@ -2,7 +2,7 @@ package Util.Type;
 
 public class BaseType {
   public boolean isInt = false, isBool = false, isString = false, isClass = false;
-  public String name; // for class
+  public String name = null; // for class
 
   public BaseType(String typeName) {
     name = typeName;
@@ -13,7 +13,7 @@ public class BaseType {
     } else if (typeName.equals("string")) {
       isString = true;
     } else {
-      throw new RuntimeException("BaseType constructor error: class without classdDecl");
+      isClass = true;
     }
   }
   public BaseType(BaseType other) {
@@ -25,6 +25,8 @@ public class BaseType {
   }
 
   public boolean equals(BaseType other) {
+    if (other instanceof ExprType && ((ExprType) other).isNull)
+      return true;
     if (isInt && other.isInt)
       return true;
     if (isBool && other.isBool)

@@ -6,7 +6,7 @@ import AST.*;
 
 public class WhileStmtNode extends StmtNode {
   public ExprNode cond = null;
-  public StmtNode body = null;
+  public StmtNode body = null; // can be null(EmptyStmt)
 
   public WhileStmtNode(Position pos) {
     super(pos);

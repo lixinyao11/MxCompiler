@@ -11,7 +11,6 @@ public class BuiltinScope extends Scope {
     super(null);
     this.funcdcls = new HashMap<>();
     this.classdcls = new HashMap<>();
-    // todo: add builtin functions
     classdcls.put("bool", new ClassDecl("bool"));
     classdcls.put("int", new ClassDecl("int"));
 
@@ -28,5 +27,6 @@ public class BuiltinScope extends Scope {
     stringClass.addFunc(new FuncDecl("substring", "string", "int", "int"));
     stringClass.addFunc(new FuncDecl("parseInt", "int", null, null));
     stringClass.addFunc(new FuncDecl("ord", "int", "int", null));
+    classdcls.put("string", stringClass);
   }
 }

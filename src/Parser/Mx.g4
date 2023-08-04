@@ -1,5 +1,7 @@
 grammar Mx;
 
+@header {package Parser;}
+
 program: (funDef | classDef | (varDef ';'))* EOF;
 
 classDef : Class Identifier '{' ((varDef ';') | classBuild | funDef)* '}' ';';
@@ -15,7 +17,7 @@ block : '{' statement* '}';
 statement
     : block                                                                     #blockStmt
     | varDef ';'                                                                #vardefStmt
-    | If expression thenStmt=statement
+    | If '(' expression ')' thenStmt=statement
         (Else elseStmt=statement)?                                             #ifStmt
     | While '(' expression ')' statement                                        #whileStmt
     | For '(' initStmt=statement condExpr=expression? ';' stepExpr=expression? ')' statement #forStmt
@@ -32,7 +34,7 @@ typeName : baseType | Identifier;
 baseType : Bool | Int | String;
 
 expression
-    : New typeName '[' expression ']' ('['']')*                                 #newArrayExpr
+    : New typeName ('[' expression? ']')+                                       #newArrayExpr
     | New typeName ('(' ')')?                                                   #newVarExpr
     | expression '(' (expression (Comma expression)*)? ')'                      #callExpr
     | expression '[' expression ']'                                             #arrayExpr
@@ -50,7 +52,7 @@ expression
     | expression op=Or expression                                               #binaryExpr
     | expression op=LogicAnd expression                                         #binaryExpr
     | expression op=LogicOr expression                                          #binaryExpr
-    | expression '?' expression ':' expression                                  #conditionalExpr
+    | <assoc=right> expression '?' expression ':' expression                    #conditionalExpr
     | <assoc=right> expression op=Assign expression                             #assignExpr
     | '(' expression ')'                                                        #parenExpr
     | primary                                                                   #atomExpr

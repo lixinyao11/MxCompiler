@@ -4,7 +4,6 @@ import Util.*;
 
 public class ReturnType extends VarType {
   public boolean isVoid = false;
-
   public ReturnType(String baseType, int dim) {
     super(baseType, dim);
     if (baseType.equals("void")) {
@@ -12,22 +11,25 @@ public class ReturnType extends VarType {
     }
   }
 
-  public ReturnType(ExprType type, Position pos) {
+  public ReturnType(BaseType type) {
     super(type);
-    if (type.isNull)
-      throw new SemanticError("null type cannot be a return type", pos);
+    if (type instanceof ReturnType) {
+      this.isVoid = ((ReturnType) type).isVoid;
+    }
   }
-  
+
   // void is equal to void only
   @Override
   public boolean equals(BaseType obj) {
-    if (!(obj instanceof ReturnType)) {
-      if (!isVoid && super.equals(obj))
-        return true;
-      return false;
-    }
-    if (isVoid && ((ReturnType) obj).isVoid)
-      return true;
-    return !isVoid && !((ReturnType) obj).isVoid && super.equals(obj);
+    ReturnType other = new ReturnType(obj);
+    if (isVoid && other.isVoid) return true;
+    return !isVoid && !other.isVoid && super.equals(obj);
+  }
+
+  @Override
+  public String toString() {
+    if (isVoid)
+      return "void";
+    return super.toString();
   }
 }

@@ -5,17 +5,24 @@ import AST.Stmt.*;
 import AST.Expr.*;
 import Parser.MxBaseVisitor;
 import Parser.MxParser;
+import Util.SemanticError;
 import org.antlr.v4.runtime.misc.Pair;
 //import Util.error.semanticError;
 import Util.Position;
 import Util.Type.*;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class ASTBuilder extends MxBaseVisitor<ASTNode> {
+
+  @Override
+  public ASTNode visitTerminal(org.antlr.v4.runtime.tree.TerminalNode node) {
+    throw new RuntimeException("Terminal Node should not be visited");
+  }
   @Override
   public ASTNode visitProgram(MxParser.ProgramContext ctx) {
     ProgramNode program = new ProgramNode(new Position(ctx));
     for (var x : ctx.children)
-      program.decls.add(visit(x));
+      if (!(x instanceof TerminalNode)) program.decls.add(visit(x));
     return program;
   }
 
@@ -23,7 +30,9 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
   public ASTNode visitClassDef(MxParser.ClassDefContext ctx) {
     ClassDefNode classDef = new ClassDefNode(new Position(ctx));
     classDef.name = ctx.Identifier().getText();
-    if (ctx.classBuild() != null) {
+    if (ctx.classBuild().size() > 1)
+      throw new SemanticError("class can only have one constructor", new Position(ctx));
+    if (!ctx.classBuild().isEmpty()) {
       classDef.classBuild = (ClassBuildNode) visitClassBuild(ctx.classBuild().get(0));
     } else {
       classDef.classBuild = null;
@@ -39,8 +48,10 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
   public ASTNode visitClassBuild(MxParser.ClassBuildContext ctx) {
     ClassBuildNode classBuild = new ClassBuildNode(new Position(ctx));
     classBuild.name = ctx.Identifier().getText();
-    for (var x : ctx.block().statement())
+    for (var x : ctx.block().statement()) {
+      if (x instanceof MxParser.EmptyStmtContext) continue;
       classBuild.stmt_List.add((StmtNode) visit(x));
+    }
     return classBuild;
   }
 
@@ -55,9 +66,14 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
       func.retType = new ReturnType(ctx.returnType().type().typeName().getText(), ctx.returnType().type().LBracket().size());
     }
 
-    func.paraList = (ParaListNode) visitParaList(ctx.paraList());
+    if (ctx.paraList() != null) {
+      func.paraList = (ParaListNode) visitParaList(ctx.paraList());
+    } else {
+      func.paraList = new ParaListNode(new Position(ctx));
+    }
 
     for (var x : ctx.block().statement()) {
+      if (x instanceof MxParser.EmptyStmtContext) continue;
       func.stmt_List.add((StmtNode) visit(x));
     }
 
@@ -78,8 +94,10 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
   @Override
   public ASTNode visitBlockStmt(MxParser.BlockStmtContext ctx) {
     BlockStmtNode blockStmt = new BlockStmtNode(new Position(ctx));
-    for (var x : ctx.block().statement())
+    for (var x : ctx.block().statement()) {
+      if (x instanceof MxParser.EmptyStmtContext) continue;
       blockStmt.stmts.add((StmtNode) visit(x));
+    }
     return blockStmt;
   }
 
@@ -257,13 +275,28 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
   public ASTNode visitNewArrayExpr(MxParser.NewArrayExprContext ctx) {
     NewExprNode newExpr = new NewExprNode(new Position(ctx));
     newExpr.varType = new VarType(ctx.typeName().getText(), ctx.LBracket().size());
-    newExpr.expr = (ExprNode) visit(ctx.expression());
+
+    boolean flag = false;
+    for (int i = 0; i < ctx.children.size(); ++i) {
+      if (ctx.children.get(i).getText().equals("[")) {
+        if (flag) {
+          if (ctx.children.get(++i) instanceof MxParser.ExpressionContext) throw new SemanticError("NewArrayExpr Error", new Position(ctx));
+        } else {
+          if (ctx.children.get(++i) instanceof MxParser.ExpressionContext) {
+            newExpr.exprList.add((ExprNode) visit(ctx.children.get(i)));
+          } else {
+            flag = true;
+          }
+        }
+      }
+    }
+
     return newExpr;
   }
 
   @Override
   public ASTNode visitParenExpr(MxParser.ParenExprContext ctx) {
-    return (ExprNode) visit(ctx.expression());
+    return visit(ctx.expression());
   }
 
   @Override

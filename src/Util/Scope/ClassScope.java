@@ -4,6 +4,7 @@ import java.util.HashMap;
 import AST.*;
 import Util.Decl.FuncDecl;
 import Util.*;
+import Util.Type.ExprType;
 
 public class ClassScope extends Scope {
   HashMap<String, FuncDecl> funcdcls = null;
@@ -33,9 +34,9 @@ public class ClassScope extends Scope {
   }
 
   @Override
-  public FuncDecl getFuncDecl(String name) {
+  public ExprType getIdType(String name) {
     if (funcdcls.containsKey(name))
-      return funcdcls.get(name);
-    return parentScope.getFuncDecl(name);
+      return new ExprType(name, funcdcls.get(name));
+    return super.getIdType(name);
   }
 }

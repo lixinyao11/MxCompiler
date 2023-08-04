@@ -36,7 +36,7 @@ public class Scope {
   //   throw new SemanticError("variable " + name + " not defined", pos);
   // }
 
-  public void returnsType(ReturnType type, Position pos) {
+  public void returnsType(ExprType type, Position pos) {
     parentScope.returnsType(type, pos);
   }
 
@@ -48,16 +48,12 @@ public class Scope {
     return parentScope.isInClass();
   }
 
-  public VarType getVarType(String name) {
+  public ExprType getIdType(String name) {
     if (varDefs.containsKey(name))
-      return varDefs.get(name);
+      return new ExprType(varDefs.get(name));
     if (parentScope != null)
-      return parentScope.getVarType(name);
+      return parentScope.getIdType(name);
     return null;
-  }
-
-  public FuncDecl getFuncDecl(String name) {
-    return parentScope.getFuncDecl(name);
   }
   
 }

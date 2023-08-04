@@ -49,10 +49,10 @@ public class SemanticChecker implements ASTVisitor {
     currentScope = new FuncScope(currentScope, node.retType);
     node.paraList.accept(this);
     for (var stmt : node.stmt_List) {
-      stmt.accept(this);
+      if (stmt != null) stmt.accept(this);
     }
-    if (!((FuncScope)currentScope).isReturned()) 
-      throw new SemanticError("nonvoid function " + node.name + " does not have return statement", node.pos);
+    if (!((FuncScope)currentScope).isReturned() && !node.name.equals("main"))
+      throw new SemanticError("non-void function " + node.name + " does not have return statement", node.pos);
     currentScope = currentScope.parentScope;
   }
 
@@ -67,7 +67,7 @@ public class SemanticChecker implements ASTVisitor {
     }
     if (node.classBuild != null) {
       // name must match
-      if (node.classBuild.name != node.name)
+      if (!node.classBuild.name.equals(node.name))
         throw new SemanticError("classBuild name does not match", node.pos);
       node.classBuild.accept(this);
     }
@@ -85,7 +85,7 @@ public class SemanticChecker implements ASTVisitor {
       if (var.b != null) {
         var.b.accept(this);
         if (!var.b.type.equals(node.type))
-          throw new SemanticError("Type mismatch in variable definition", node.pos);
+          throw new SemanticError("VarDef for type " + node.type.toString() + " is type " + var.b.type.toString(), node.pos);
       }
       if (!(currentScope instanceof ClassScope)) {
         currentScope.addVarSafe(node.type, var.a, node.pos);
@@ -115,19 +115,21 @@ public class SemanticChecker implements ASTVisitor {
   public void visit(BlockStmtNode node) {
     currentScope = new Scope(currentScope);
     for (var stmt : node.stmts) {
-      stmt.accept(this);
+      if (stmt != null) stmt.accept(this);
     }
     currentScope = currentScope.parentScope;
   }
 
   public void visit(IfStmtNode node) {
     node.cond.accept(this);
-    if (node.cond.type != new ExprType("bool", 0))
+    if (!node.cond.type.equals(new ExprType("bool", 0)))
       throw new SemanticError("Condition of if statement should be bool", node.pos);
-  
-    currentScope = new Scope(currentScope);
-    node.thenStmt.accept(this);
-    currentScope = currentScope.parentScope;
+
+    if (node.thenStmt != null) {
+      currentScope = new Scope(currentScope);
+      node.thenStmt.accept(this);
+      currentScope = currentScope.parentScope;
+    }
 
     if (node.elseStmt != null) {
       currentScope = new Scope(currentScope);
@@ -137,12 +139,14 @@ public class SemanticChecker implements ASTVisitor {
   }
   public void visit(WhileStmtNode node) {
     node.cond.accept(this);
-    if (node.cond.type != new ExprType("bool", 0))
+    if (!node.cond.type.equals(new ExprType("bool", 0)))
       throw new SemanticError("Condition of while statement should be bool", node.pos);
-    
-    currentScope = new LoopScope(currentScope);
-    node.body.accept(this);
-    currentScope = currentScope.parentScope;
+
+    if (node.body != null) {
+      currentScope = new LoopScope(currentScope);
+      node.body.accept(this);
+      currentScope = currentScope.parentScope;
+    }
   }
 
   public void visit(ForStmtNode node) {
@@ -152,13 +156,11 @@ public class SemanticChecker implements ASTVisitor {
     }
     if (node.condExpr != null) {
       node.condExpr.accept(this);
-      if (node.condExpr.type != new ExprType("bool", 0))
+      if (!node.condExpr.type.equals(new ExprType("bool", 0)))
         throw new SemanticError("Condition of for statement should be bool", node.pos);
     }
-    if (node.stepExpr != null) {
-      node.stepExpr.accept(this);
-    }
-    node.body.accept(this);
+    if (node.stepExpr != null) node.stepExpr.accept(this);
+    if (node.body != null)  node.body.accept(this);
     currentScope = currentScope.parentScope;
   }
 
@@ -175,9 +177,9 @@ public class SemanticChecker implements ASTVisitor {
   public void visit(ReturnStmtNode node) {
     if (node.retExpr != null) {
       node.retExpr.accept(this);
-      currentScope.returnsType(new ReturnType(node.retExpr.type, node.pos), node.pos);
+      currentScope.returnsType(node.retExpr.type, node.pos);
     } else {
-      currentScope.returnsType(new ReturnType("void", 0), node.pos);
+      currentScope.returnsType(new ExprType("void", 0), node.pos);
     }
   }
 
@@ -213,18 +215,12 @@ public class SemanticChecker implements ASTVisitor {
       node.type = new ExprType(className, 0);
       node.isLeftValue = true;
     } else if (node.isIdentifier) {
-      var varType = currentScope.getVarType(node.identifier);
-      if (varType != null) {
-        node.type = (ExprType) varType;
-        node.isLeftValue = true;
+      ExprType idType = currentScope.getIdType(node.identifier);
+      if (idType != null) {
+        node.type = idType;
+        node.isLeftValue = !idType.isFunc;
       } else {
-        var funcDecl = currentScope.getFuncDecl(node.identifier);
-        if (funcDecl != null) {
-          node.type = new ExprType(node.identifier, funcDecl);
-          node.isLeftValue = false;
-        } else {
-          throw new SemanticError("identifier " + node.identifier + " not defined", node.pos);
-        }
+        throw new SemanticError("identifier " + node.identifier + " not defined", node.pos);
       }
     } else {
       throw new Error("atomExprNode error");
@@ -235,26 +231,31 @@ public class SemanticChecker implements ASTVisitor {
     node.lhs.accept(this);
     node.rhs.accept(this);
 
-    if (node.lhs.type.isFunc || node.rhs.type.isFunc)
-      throw new SemanticError("function type can not be computed", node.pos);
-    if ((!node.lhs.type.isNull && node.rhs.type.dim > 0) || (!node.rhs.type.isNull && node.lhs.type.dim > 0))
-      throw new SemanticError("array type cannot be computed with non-null type", node.pos);
-
     if (!node.lhs.type.equals(node.rhs.type))
-        throw new SemanticError("Type mismatch in binary expression", node.pos);
-    if (node.op.equals("==") || node.op.equals("!=")) {
-      node.type = new ExprType("bool", 0);
-      node.isLeftValue = false;
-      return;
+      throw new SemanticError("Type mismatch in binary expression", node.pos);
+
+    if (node.rhs.type.dim > 0 || node.lhs.type.dim > 0) {
+      if (node.op.equals("==") || node.op.equals("!=")) {
+        node.type = new ExprType("bool", 0);
+        node.isLeftValue = false;
+        return;
+      }
+      throw new SemanticError("array type cannot be computed", node.pos);
     }
 
-    if (node.lhs.type.dim > 0 || node.rhs.type.dim > 0 || node.lhs.type.isBool || node.rhs.type.isBool || node.lhs.type.isNull || node.rhs.type.isNull)
-      throw new SemanticError("type " + node.lhs.type.toString() + " and " + node.rhs.type.toString() + " cannot be computed", node.pos);
-    
+    if (node.lhs.type.isBool) {
+      if (node.op.equals("&&") || node.op.equals("||") || node.op.equals("==") || node.op.equals("!=")) {
+        node.type = new ExprType("bool", 0);
+        node.isLeftValue = false;
+        return;
+      }
+      throw new SemanticError("type bool cannot be computed", node.pos);
+    }
+
     if (node.lhs.type.isString) {
       if (node.op.equals("+")) {
         node.type = new ExprType("string", 0);
-      } else if (node.op.equals(">") || node.op.equals("<") || node.op.equals(">=") || node.op.equals("<=")) {
+      } else if (node.op.equals("==") || node.op.equals("!=") || node.op.equals(">") || node.op.equals("<") || node.op.equals(">=") || node.op.equals("<=")) {
         node.type = new ExprType("bool", 0);
       } else {
         throw new SemanticError("String cannot be computed by " + node.op, node.pos);
@@ -262,7 +263,13 @@ public class SemanticChecker implements ASTVisitor {
       node.isLeftValue = false;
       return;
     }
-    node.type = new ExprType("int", 0);
+    if (node.op.equals(">") || node.op.equals("<") || node.op.equals(">=") || node.op.equals("<=") || node.op.equals("==") || node.op.equals("!=")) {
+      node.type = new ExprType("bool", 0);
+    } else if (node.op.equals("+") || node.op.equals("-") || node.op.equals("*") || node.op.equals("/") || node.op.equals("%") || node.op.equals("<<") || node.op.equals(">>") || node.op.equals("&") || node.op.equals("|") || node.op.equals("^") || node.op.equals("~")) {
+      node.type = new ExprType("int", 0);
+    } else {
+      throw new SemanticError("Type mismatch in binary expression", node.pos);
+    }
     node.isLeftValue = false;
   }
 
@@ -313,7 +320,7 @@ public class SemanticChecker implements ASTVisitor {
     if (!node.lhs.isLeftValue)
       throw new SemanticError("Left value required in assignment expression", node.pos);
     if (!node.lhs.type.equals(node.rhs.type))
-      throw new SemanticError("Type mismatch in assignment expression", node.pos);
+      throw new SemanticError("assign type " + node.lhs.type.toString() + " with type " + node.rhs.type.toString(), node.pos);
     node.type = node.lhs.type;
     node.isLeftValue = false;
   }
@@ -327,10 +334,10 @@ public class SemanticChecker implements ASTVisitor {
     }
     if (!node.func.type.isFunc)
       throw new SemanticError("call expression on non-func type", node.pos);
-    node.type = (ExprType) node.func.type.funcDecl.calledByArgs(argTypes);
-    if (node.type == null) {
+    var tmp = node.func.type.funcDecl.calledByArgs(argTypes);
+    if (tmp == null)
       throw new SemanticError("Function call with wrong arguments", node.pos);
-    }
+    node.type = new ExprType(tmp);
     node.isLeftValue = false;
   }
 
@@ -341,22 +348,30 @@ public class SemanticChecker implements ASTVisitor {
       throw new SemanticError("Array index must be int", node.pos);
     if (node.array.type.dim == 0)
       throw new SemanticError("Type mismatch in array expression", node.pos);
-    node.type = (ExprType) new BaseType(node.array.type);
+    node.type = new ExprType(node.array.type);
+    node.type.dim--;
     node.isLeftValue = true;
   }
 
   public void visit(MemberExprNode node) {
     node.obj.accept(this);
-    if (!node.obj.type.isClass)
-      throw new SemanticError("Member expression on non-class type", node.pos);
+    if (node.obj.type.dim > 0) {
+      if (!node.member.equals("size"))
+        throw new SemanticError("Member expression on array type", node.pos);
+      node.type = new ExprType("size", new FuncDecl("size", "int", null, null));
+      node.isLeftValue = false;
+      return;
+    }
+    if (!node.obj.type.isString && !node.obj.type.isClass)
+      throw new SemanticError("Member expression on non-class, non-string type", node.pos);
     var classDecl = globalScope.getClassDecl(node.obj.type.name);
-    var memVar = classDecl.getVar(node.obj.type.name);
+    var memVar = classDecl.getVar(node.member);
     if (memVar != null) {
-      node.type = (ExprType) memVar;
+      node.type = new ExprType(memVar);
       node.isLeftValue = true;
       return;
     }
-    var memFunc = classDecl.getFunc(node.obj.type.name);
+    var memFunc = classDecl.getFunc(node.member);
     if (memFunc != null) {
       node.type = new ExprType(node.obj.type.name, memFunc);
       node.isLeftValue = true;
@@ -370,19 +385,23 @@ public class SemanticChecker implements ASTVisitor {
       if (globalScope.getClassDecl(node.varType.name) == null)
         throw new SemanticError("Class not found", node.pos);
     }
-    if (node.expr == null) {
+    if (node.exprList.isEmpty()) {
       if (!node.varType.isClass || node.varType.dim > 0)
         throw new SemanticError("Type mismatch in new expression", node.pos);
-      node.type = (ExprType) node.varType;
+      node.type = new ExprType(node.varType);
       node.isLeftValue = false;
       return;
     }
     if (node.varType.dim == 0)
       throw new SemanticError("Type mismatch in new expression", node.pos);
-    node.expr.accept(this);
-    if (!node.expr.type.equals(new ExprType("int", 0)))
-      throw new SemanticError("Type mismatch in new expression", node.pos);
-    node.type = (ExprType) node.varType;
+    if (node.varType.dim < node.exprList.size())
+      throw new SemanticError("Type dim mismatch in new expression", node.pos);
+    for (var expr : node.exprList) {
+      expr.accept(this);
+      if (!expr.type.equals(new ExprType("int", 0)))
+        throw new SemanticError("Type mismatch in new expression", node.pos);
+    }
+    node.type = new ExprType(node.varType);
     node.isLeftValue = false;
   }
 

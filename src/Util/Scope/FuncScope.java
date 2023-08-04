@@ -16,7 +16,7 @@ public class FuncScope extends Scope {
   }
 
   @Override
-  public void returnsType(ReturnType type, Position pos) {
+  public void returnsType(ExprType type, Position pos) {
     if (!returnType.equals(type))
       throw new SemanticError("function should return " + returnType.toString() + " but got " + type.toString(), pos);
     this.isReturned = true;

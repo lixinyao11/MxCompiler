@@ -46,9 +46,7 @@ x operator x
 
 
 # todo-list
-1. write ASTNodes
-2. write ASTBuilder
-3. write ASTVisitor
+1. array.size()的实现
 
 # mark
 1. 重新编译g4！！

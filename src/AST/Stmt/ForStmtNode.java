@@ -6,7 +6,7 @@ import AST.*;
 
 public class ForStmtNode extends StmtNode {
   public ExprNode condExpr = null, stepExpr = null;
-  public StmtNode initStmt = null, body = null;
+  public StmtNode initStmt = null, body = null; // can be null (emptyStmt)
 
   public ForStmtNode(Position pos) {
     super(pos);

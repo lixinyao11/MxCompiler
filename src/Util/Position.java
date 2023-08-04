@@ -27,12 +27,8 @@ public class Position {
     this.column = node.getSymbol().getCharPositionInLine();
   }
 
-  public int getRow() {
-    return row;
-  }
-
-  public int getColumn() {
-    return column;
+  public String toString() {
+    return "(" + row + "," + column + ")";
   }
   
 }

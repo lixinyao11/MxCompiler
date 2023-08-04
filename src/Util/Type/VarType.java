@@ -7,19 +7,22 @@ public class VarType extends BaseType {
     super(baseType);
     this.dim = dim;
   }
-  public VarType(VarType other) {
-    super(other.name);
-    this.dim = other.dim;
+  public VarType(BaseType other) {
+    super(other);
+    if (other instanceof VarType) {
+      this.dim = ((VarType) other).dim;
+    }
   }
 
   @Override
   public boolean equals(BaseType obj) {
-    if (!(obj instanceof VarType)) {
-      if (dim == 0 && super.equals(obj))
-        return true;
-      return false;
-    }
-    return super.equals(obj) && dim == ((VarType) obj).dim;
+    VarType other = new VarType(obj);
+    return super.equals(obj) && dim == other.dim;
+  }
+
+  @Override
+  public String toString() {
+    return super.toString() + "[]".repeat(Math.max(0, dim));
   }
   
 }

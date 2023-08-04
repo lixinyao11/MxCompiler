@@ -23,7 +23,6 @@ public class GlobalScope extends BuiltinScope {
     funcdcls.put(name, funcDecl);
   }
 
-  @Override
   public FuncDecl getFuncDecl(String name) {
     if (!funcdcls.containsKey(name))
       return null;
@@ -42,12 +41,19 @@ public class GlobalScope extends BuiltinScope {
   }
 
   @Override
-  public void returnsType(ReturnType type, Position pos) {
+  public void returnsType(ExprType type, Position pos) {
     throw new SemanticError("return statement not in a function", pos);
   }
 
   @Override
   public String isInClass() {
     return null;
+  }
+
+  @Override
+  public ExprType getIdType(String name) {
+    if (funcdcls.containsKey(name))
+      return new ExprType(name, funcdcls.get(name));
+    return super.getIdType(name);
   }
 }
