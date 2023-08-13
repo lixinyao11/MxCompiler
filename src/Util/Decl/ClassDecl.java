@@ -1,6 +1,8 @@
 package Util.Decl;
 
 import Util.Type.*;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import AST.*;
 
@@ -21,7 +23,7 @@ public class ClassDecl {
     this.funcDcls = new HashMap<>();
     for (var varDef : classDef.varDef_list) {
       for (var i : varDef.varList) {
-        varDcls.put(i.a, varDef.type);
+        varDcls.put(i.first, varDef.type);
       }
     }
     for (var funcDef : classDef.funcDef_list) {
@@ -47,5 +49,9 @@ public class ClassDecl {
     if (!varDcls.containsKey(name))
       return null;
     return varDcls.get(name);
+  }
+
+  public ArrayList<VarType> getMemberType() {
+    return new ArrayList<>(varDcls.values());
   }
 }

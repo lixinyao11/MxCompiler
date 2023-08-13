@@ -4,7 +4,7 @@ import Util.Position;
 import AST.*;
 
 public class BinaryExprNode extends ExprNode {
-  public String op = null;
+  public String op = null; // +-*/%  << >>  > >= < <=  == !=  & ^ | && ||
   public ExprNode lhs = null, rhs = null;
 
   public BinaryExprNode(Position pos) {

@@ -368,9 +368,15 @@ visit过程中进行类型检查和类型推断，保存每个`ExprNode`的`type
 
 ##### BinaryExpr
 
+1. `+, -, *, /,%`
+2. `> < >= <=`
+3. `== !=`
+4. `&& || !`
+5. `>> << & | ^ ~`
+
 1. 表达式两边的对象类型必须一致。而表达式两边的值可以是常量或变量
-2. `bool` 类型仅可做 `==` 和 `!=` 运算
-3. 数组对象仅可以和常量 `null` 进行 `==` 和 `!=` 运算
+2. `bool` 类型仅可做 `==`、`!=`、`&&` 以及 `||` 运算
+3. 数组对象仅可以和数组以及常量 `null` 进行 `==` 和 `!=` 运算
 4. 类对象的 `==` 和 `!=` 运算为比较内存地址，其它运算符重载是未定义的
 5. 字符串
    1. `+` 表示字符串拼接
@@ -415,3 +421,355 @@ string == null
 
 break continue等
 
+# IR
+
+## IR design
+
+### IRProgram
+
+1. 全局变量 `@<variablename> = global <type> value  ` 指针
+2. 自定义struct`%<classname> = type { <type>+ }`po0[--0-]
+3. 函数`define <returnType> @<funcname>(<type> [name], ...) {basic blocks}`
+
+#### GlobalVarDef
+
+#### StructDef
+
+#### Function
+
+retType, paras, name, body
+
+存map<String, int>记录每个名字的出现次数
+
+存一个cnt作为函数内临时变量%0, %1, %2 ...的计数
+
+#### block
+
+`parent(Fucntion), label(string), instructions(list<IRInst>)`
+
+### Type
+
+`int`, `ptr`, `void`
+
+bool -> i1
+
+### IREntity
+
+#### IRVariable
+
+1. globalPtr
+2. localPtr
+3. localVar
+
+#### IRLiteral
+
+1. null
+2. int (including true, false)
+3. **string**
+
+### IRScope
+
+`arraylist<string>`只存原变量名，不带`".1"`
+
+`className`若在class内，存类名
+
+`loopType`：不在循环内：0，while：1，for：2
+
+`loopNum`：循环的label编号
+
+### Inst
+
+#### Alloca
+
+```java
+LocalPtr result;
+IRType type;
+```
+
+#### Store
+
+```
+IREntity src = null;
+IRVariable pos = null; // must be ptr type
+```
+
+#### Binary
+
+必然仅在BinaryExpr中调用-->result必为LocalVar，type即result.type
+
+两个运算数，可能是变量或字面量
+
+
+
+## IRBuilder
+
+保存：`globalScope`, `currentBlock`，`currentScope`
+
+### visit Program
+
+1. VarDefNode
+2. FuncDefNode
+3. ClassDefNode
+
+### visit VarDefNode
+
+#### in global scope
+
+对每一个var：检查是否有初始值/初始值是否为常量，构建`globalVarDef`放入`IRProgram`
+
+如果需要初始化，检查`IRProgram`里是否有`_init`函数，没有则创建
+
+`void _init() {...}`
+
+将`current_block`改为`_init: entry block`，visit初始化的`ExprNode（结果存在targetVar中，再store回globalPtr
+
+#### in local scope(must be in function, can't be in class)
+
+先处理重名问题(scope中记录新名字，在function中找到序号，更名)
+
+再alloca创建localPtr
+
+​	如有初始值，继续访问expr，最后store回去
+
+### visit FuncDef
+
+构造函数自动创建entry block
+
+修改currentBlock，新建currentScope
+
+**如果在class内：需要改名，增加一个this参数**
+
+visit ParaList处理参数（值传递vs引用传递）
+
+visit stmts处理语句
+
+离开func后：离开scope，currentBlock = null（不用调用exit）
+
+（之后每次需要使用变量时就新开一个局部变量`%1，%2...`并load
+
+### visit classDef
+
+对内部的VarDef: 直接从ClassScope中获取所有memType，创建structDef并放入irProgram
+
+先开一个scope，保存className
+
+依次visit构造函数和其他函数
+
+退出时，scope = null，回到global（不需要调用exit，scope中没有定义变量）
+
+### visit ParaList
+
+**if in class**: add a **this** parameter
+
+将剩余parameter加入对应IRFunction
+
+先对每一个参数进行重名操作，在scope中记录新名字，在function中找到序号（必为0），并序号更新为1（`this`参数也需要同样操作）
+
+添加若干**alloca**和**store**语句完成替换，此后入参与函数体内的局部变量无异，都需要通过被覆盖的新名字对应的**localPtr**来访存读写。
+
+### visit ClassBuild
+
+类似class内的FuncDef
+
+需要改名，增加一个this参数，并对this参数进行%this.1的alloca和store
+
+也需要将函数加入`IRProgram`中，新开一个scope，并更新currentBlock为函数的entryBlock
+
+然后依次遍历stmt即可
+
+退出时current_scope = parent(因为是退出函数，不需要调用exit)，currentBlock = null
+
+### visit StmtNode
+
+#### BlockStmt
+
+开一个新的scope（继承)，原currentBlock不变
+
+遍历visit所有stmt
+
+退出后`scope.exit(); scope = parent;`
+
+#### IfStmt
+
+先再本scope，本currentblock计算condExpr，结果存储到一个localVariable(i1)中，之后（如果有then）
+
+```
+br i1 %4, label %if.then.0, label %if.else.0
+```
+
+再新开一个`if.then`block，同时新建scope，访问thenStmt，最后无条件的跳转到if.end。退出后scope.exit
+
+再开一个`if.else`block，再新建scope，访问elseStmt，最后无条件跳转到if.end，退出后scope.exit(若有elseStmt)
+
+最后开一个`if.end`block，scope依然是if外的scope，结束对ifStmt的访问
+
+#### WhileStmt
+
+在进入whileStmt之前就无条件跳转到%while.cond
+
+开一个while.cond基本块，scope不变，访问condExpr，用一个i1的临死变量存储结果，再
+
+```
+br i1 %3, label %while.body.0, label %while.end.0
+```
+
+开一个while.body基本块，开一个新scope（带loop），访问body，最后无条件跳转到while.cond，退出后scope.exit
+
+新开一个while.end基本块，scope依然是whileStmt外的scope，结束对WhileStmt的访问
+
+#### forStmt
+
+先新开一个scope（带loop），currentblock不变，完成init（alloca，store）
+
+之后无条件跳转到for.cond.0基本块
+
+新开一个for.cond基本块，访问condExpr，用一个i1临时变量存储结果
+
+```
+br i1 %3, label %for.body.0, label %for.end.0
+```
+
+再新开一个for.body基本块，访问循环体，最后
+
+```
+br label %for.step.0
+```
+
+开一个for.step基本块，访问stepExpr（完成计算后store）最后
+
+```
+br label %for.cond.0
+```
+
+最后scope.exit，开一个for.end基本块，处在forStmt外的scope内，结束访问。
+
+#### ContinueStmt
+
+需要知道当前在什么loop里，以及该loop的序号是多少
+
+* for循环：`br label %for.step.0`
+* while: `br label %while.cond.0`
+
+#### BreakStmt
+
+* 在for循环中：`br label %for.end.0`
+* while: `br label %while.end.0`
+
+#### ReturnStmt
+
+先访问return后的expr，生成存储返回值的临时变量
+
+```
+ret i32 %2
+```
+
+#### ExprStmt
+
+currentBlock和currentScope都不变
+
+expr的返回值丢弃，targetVar = null
+
+直接访问expr即可
+
+#### VardefStmt
+
+直接访问其中的VarDefNode即可
+
+### ExprNode
+
+均不需要更改currentScope，currentBlock
+
+把最后的返回值存在lastExpr里（有可能用不到，有可能用得到）
+
+若为右值，只存一个返回值%1（里面是int/ptr等），也可能是literal
+
+若为左值，存一个返回值和一个ptr（变量本身的ptr，可能是local/globalPtr，也可能是localVar（A.b, x[1]）
+
+#### BinaryExpr
+
+依次访问左右两个expr，得到lhsVar和rhsVar（存的是被操作数里的值，即int）
+
++-*/% << >> & | ^：左右type与最终type均相同，直接使用对应binaryInst
+
+== != >= > <= <：左右type相同，直接使用icmpInst，返回类型为i1
+
+&& ||：左右都是i1，直接& |，得到i1
+
+不是左值，返回一个值
+
+#### UnaryExpr
+
+均非左值，只返回一个value
+
+先访问expr，获得lastExpr
+
+比如对局部/全局变量操作，exprVal就是Local/GlobalPtr
+
+`! ~` : xor with true / -1(1...11)
+
+`+` : add with 0
+
+`-` : sub with 0
+
+`++ --` (`a++`) : lastExpr.value里存了a的值，因此lastExpr.value不用变，继续作为返回值。再用这个值加一/ -1，存到一个新的localVar(retVar)（add语句）最后把它store回lastExpr.dstptr
+
+#### PreSelfExpr
+
+（是左值，需要返回ptr）`++a, --a`
+
+先访问其中的expr，得到a对应的value和ptr
+
+用value +/- 1，得到一个临时变量tmp
+
+将tmp store回ptr中
+
+返回值为tmp，返回的ptr不变
+
+#### AssignExpr
+
+lhs为左值，左右类型相同
+
+先后访问lhs和rhs，把rhs得到的value store进lhs的destptr里
+
+返回的是右值，只需返回rhs的value，相当于不变
+
+#### ConditionalExpr
+
+先访问condExpr
+
+返回值应当是一个i1
+
+```
+br i1 %4, label %cond.then.0, label %cond.else.0
+```
+
+再新开一个`cond.then`block，访问thenExpr(返回值丢弃)	，最后无条件的跳转到if.end
+
+再开一个`if.else`block，访问elseExpr（返回值丢弃），最后无条件跳转到cond.end
+
+最后开一个`if.end`block，结束访问
+
+# todo-list 
+
+1. refractor：ASTNode中尽量不要public
+2. refractor：util/里的一些东西移到AST/
+3. refractor：IRNode和Util不要public
+4. 是否需要private？
+5. 合并AST中的type？
+6. 内建全局函数
+7. 数组类的size()，数组的存储和new
+8. string类及其内建函数
+
+# Mark Everyday
+
+可以将targetVar改为visit完expr后把结果变量传进去（IRVariable）
+
+相当于visitExpr的返回值，在外层调用函数里再使用这个返回值
+
+
+
+一个exprNode访问完后若为左值，需要返回一个ptr(IRVariable)加一个值，否则只返回一个值（IREntity)(解决literal问题)
+
+callExpr: function type：返回一个funcDecl/funcname
+
+targetVar需要改名

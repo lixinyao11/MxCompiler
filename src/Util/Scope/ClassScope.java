@@ -21,9 +21,9 @@ public class ClassScope extends Scope {
     }
     for (var def : classDef.varDef_list) {
       for (var i : def.varList) {
-        if (varDefs.containsKey(i.a))
+        if (varDefs.containsKey(i.first))
           throw new SemanticError("ClassScope: " + classDef.name + "duplicated variable name", def.pos);
-        varDefs.put(i.a, def.type);
+        varDefs.put(i.first, def.type);
       }
     }
   }

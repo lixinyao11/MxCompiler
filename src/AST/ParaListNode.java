@@ -2,9 +2,8 @@ package AST;
 
 import java.util.ArrayList;
 
-import Util.Position;
+import Util.*;
 import Util.Type.*;
-import org.antlr.v4.runtime.misc.Pair;
 
 public class ParaListNode extends ASTNode {
   public ArrayList<Pair<VarType, String>> paras = null;

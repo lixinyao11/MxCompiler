@@ -1,10 +1,9 @@
 package AST;
 
 import AST.Expr.*;
-import Util.Position;
+import Util.*;
 import Util.Type.*;
 import java.util.ArrayList;
-import org.antlr.v4.runtime.misc.Pair;
 
 public class VarDefNode extends ASTNode {
   public VarType type = null;

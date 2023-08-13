@@ -3,7 +3,7 @@ package AST.Expr;
 import Util.Position;
 import AST.*;
 
-public class PreSelfExprNode extends ExprNode {
+public class PreSelfExprNode extends ExprNode { // ++a, --a
   public String op = null;
   public ExprNode expr = null;
 

@@ -79,25 +79,25 @@ public class SemanticChecker implements ASTVisitor {
       throw new SemanticError("type " + node.type.name + " not defined", node.pos);
     for (var var : node.varList) {
       if (currentScope instanceof GlobalScope) {
-        if (globalScope.getFuncDecl(var.a) != null)
-          throw new SemanticError("variable name" + var.a + " conflicts with function name", node.pos);
+        if (globalScope.getFuncDecl(var.first) != null)
+          throw new SemanticError("variable name" + var.first + " conflicts with function name", node.pos);
       }
-      if (var.b != null) {
-        var.b.accept(this);
-        if (!var.b.type.equals(node.type))
-          throw new SemanticError("VarDef for type " + node.type.toString() + " is type " + var.b.type.toString(), node.pos);
+      if (var.second != null) {
+        var.second.accept(this);
+        if (!var.second.type.equals(node.type))
+          throw new SemanticError("VarDef for type " + node.type.toString() + " is type " + var.second.type.toString(), node.pos);
       }
       if (!(currentScope instanceof ClassScope)) {
-        currentScope.addVarSafe(node.type, var.a, node.pos);
+        currentScope.addVarSafe(node.type, var.first, node.pos);
       }
     }
   }
 
   public void visit(ParaListNode node) {
     for (var para : node.paras) {
-      if (globalScope.getClassDecl(para.a.name) == null)
-        throw new SemanticError("type " + para.a.name + " not defined", node.pos);
-      currentScope.addVarSafe(para.a, para.b, node.pos);
+      if (globalScope.getClassDecl(para.first.name) == null)
+        throw new SemanticError("type " + para.first.name + " not defined", node.pos);
+      currentScope.addVarSafe(para.first, para.second, node.pos);
     }
   }
 

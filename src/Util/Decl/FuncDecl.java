@@ -23,7 +23,7 @@ public class FuncDecl {
     retType = funcDef.retType;
     paraList = new ArrayList<>();
     for (var para : funcDef.paraList.paras) {
-      paraList.add(para.a);
+      paraList.add(para.first);
     }
   }
 
