@@ -10,6 +10,7 @@ public class ClassDecl {
   public String name;
   public HashMap<String, VarType> varDcls = null;
   HashMap<String, FuncDecl> funcDcls = null;
+  public boolean hasBuildFunc = false;
   
   public ClassDecl(String name) {
     this.name = name;
@@ -28,6 +29,9 @@ public class ClassDecl {
     }
     for (var funcDef : classDef.funcDef_list) {
       funcDcls.put(funcDef.name, new FuncDecl(funcDef));
+    }
+    if (classDef.classBuild != null) {
+      hasBuildFunc = true;
     }
   }
 
@@ -55,7 +59,4 @@ public class ClassDecl {
     return new ArrayList<>(varDcls.values());
   }
 
-  public boolean hasBuildFunc() {
-    return funcDcls.containsKey(name);
-  }
 }

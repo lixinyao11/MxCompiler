@@ -60,9 +60,13 @@ define dso_local ptr @_malloc_array(i32 noundef %0, i32 noundef %1) #0 {
   %10 = sext i32 %9 to i64
   %11 = call ptr @malloc(i64 noundef %10) #3
   store ptr %11, ptr %5, align 8
-  %12 = load ptr, ptr %5, align 8
-  %13 = getelementptr inbounds i32, ptr %12, i64 1
-  ret ptr %13
+  %12 = load i32, ptr %4, align 4
+  %13 = load ptr, ptr %5, align 8
+  %14 = getelementptr inbounds i32, ptr %13, i64 0
+  store i32 %12, ptr %14, align 4
+  %15 = load ptr, ptr %5, align 8
+  %16 = getelementptr inbounds i32, ptr %15, i64 1
+  ret ptr %16
 }
 
 ; Function Attrs: allocsize(0)

@@ -695,7 +695,29 @@ expr的返回值丢弃，targetVar = null
 
 == != >= > <= <：左右type相同，直接使用icmpInst，返回类型为i1
 
-&& ||：左右都是i1，直接& |，得到i1
+&& ||：**需要短路求值** 左右都是i1，直接& |，得到i1
+
+&&：先visit lhs，
+
+br lhs.value, if.then.no, if.else.no
+
+if.then.no: visit rhs, 返回得到的lastExpr.value
+
+br if.end.no
+
+if.else.no：存一个常量false，返回该var
+
+br if.end.no
+
+
+
+||：先visit lhs
+
+br lhs.value,  if.then.no, if.else.no
+
+if.then.no：存一个常量true，返回该var
+
+if.else.no：visit rhs，返回得到的value
 
 不是左值，返回一个值
 
@@ -930,5 +952,8 @@ getelementptr type destptr i32 index;
 
 # Mark Everyday
 
-改new数组
+短路求值（三目
 
+getelementptr ptr %0, i32 0不会解引用，会返回原ptr%0
+
+转义字符

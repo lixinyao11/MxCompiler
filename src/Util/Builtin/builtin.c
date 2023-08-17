@@ -16,7 +16,6 @@ void printlnInt(int n) { printf("%d\n", n); }
 
 int *_malloc_array(int size, int length) { // size 为每个元素占几个字节，length 为数组长度
     int *tmp = (int *) malloc(size * length + 4);
-    return tmp + 1;
     tmp[0] = length;
     return tmp + 1;
 }
