@@ -685,6 +685,8 @@ expr的返回值丢弃，targetVar = null
 
 若为左值，存一个返回值和一个ptr（变量本身的ptr，可能是local/globalPtr，也可能是localVar（A.b, x[1]）
 
+若为函数，构建一个funcInfo（包含函数名(带类名`A::`)，retType，this(ptr if needed))
+
 #### BinaryExpr
 
 依次访问左右两个expr，得到lhsVar和rhsVar（存的是被操作数里的值，即int）
@@ -749,6 +751,175 @@ br i1 %4, label %cond.then.0, label %cond.else.0
 
 最后开一个`if.end`block，结束访问
 
+#### CallExpr
+
+```
+%result = call i32 @foo(i32 %arg1)
+call void @foo2(i8 97)
+```
+
+若为void函数，则visit后没有返回值
+
+否则返回一个临时localVar，存储call的result(是右值)
+
+
+
+先visit funcExpr，返回一个string为函数名（若为成员函数，包括"A::"）还有一个`IRType retType`以及`this ptr`
+
+再依次visit args，每一个expr都会返回一个value（临时/ptr/literal），依次存入Call中
+
+最后生成CallInst，如果不是void，返回value = result，否则value = null;
+
+#### MemberExpr
+
+1. ```
+   node.obj.type.dim > 0
+   ```
+
+   对于数组.size()，当场解决，
+
+   先visit expr
+
+   %0 = getelementptr i32 ptr, %lastExpr.value i32 -1
+
+   load i32 %0
+
+   非左值，把load出的值放入value即可
+
+2. 对于string.func()，放在class里一起 **"string::func"**
+
+3. 对于class.mem：先去globalScope拿到classDecl
+
+   1. 若mem为function：`A.f()`
+
+      返回值仅有一个string funcName(加上`A::f`)和一个`retType`还有一个`ptr this`（funcInfo）
+
+   2. 若mem为var：`A.b`返回值为左值，先visit obj，拿到的value为该对象指针。getelementptr获取成员指针，存入destptr，并load出value存入lastExpr.value
+
+#### AtomExpr
+
+直接检查ExprType
+
+1. isFunc:(**只能是全局函数**) 返回string（全局函数->原名），retType, this == null
+2. isLeftValue: this/variable 
+   1. 去globalScope检查，若为全局变量，返回原名对应的GlobalPtr
+   2. 去currentblock.parent.idCnt找到其对应的新名字，返回新名字对应的LocalPtr
+      1. 对ptr进行load（根据exprType里存的类型），返回得到的value，以及ptr本身
+
+1. notleftValue: Null/intConst/StringConst/TrueFalse
+   1. null/intConst/trueFalse: 生成对应的IRLiteral存入lastExpr.value
+   2. StringConst: 在全局生成一个存储了该变量的GlobalPtr(i8 数组)，名字为string.1，string.2，之后返回这一GlobalPtr即可（作为value，因为string本身就是ptr类的）
+
+#### NewExpr
+
+class单个对象或数组，返回均非左值
+
+* 调用c函数
+
+  int[20], bool[20]：直接存数组
+
+  A[20]：存20个ptr，每个指向一个A，并调用构造函数
+
+  string[20]：存20个ptr，值为null，不用进一步开循环
+
+  高维数组：开到最后一层位置，留null
+
+1. 单个class：%2 = alloca %class.A
+
+   再call A::A(ptr %2)，返回%2作为value
+
+2. 数组：`int a[x][]; A a[1]; string a[2][4][5];`
+
+   依次visit每一个expr时：设置一个函数
+
+   ```
+   saveretValue
+   if (Expr != null) {
+   	visit expr
+   	size = lastExpr.value
+   	%0 = call malloc(size * 4 + 4bytes) 
+   	%1 = getelementptr i32 %0, i32 1
+   	
+   	int no = forCnt++;
+   	%2 = alloca i32
+   	store i32 0, ptr %2 //i = 0
+   	br label for.cond + no
+   	
+   	currentBlock = addBlock: for.cond.no
+   	// i < size
+   	%0 = load i32, ptr %i
+     %cmp = icmp slt i32 %0, size
+     br i1 %cmp, label %for.body, label %for.end
+   	
+   	addBlock: for.body.no
+   	%3 = getelementptr ptr %1 i32 %0
+   	var(%1) = foo(nextExpr)
+   	store var(%1) -> %3
+   	br label %for.step.no
+   	
+   	Block: for.step.no
+   	// i++
+   	%3 = load i32, ptr %i, align 4
+     %inc = add nsw i32 %3, 1
+     store i32 %inc, ptr %i
+   	br label %for.cond
+   	
+   	Block: for.end.no
+   	return %1( = lastExpr.value)
+   } else { // after the last expr
+   // 被上一重循环调用，如int[4]循环内调用
+   %1 = alloc (type in array)
+   (if class type) call A::A(ptr %1)
+   return %1
+   }
+   ```
+
+   
+
+   
+
+   visit第一个expr时：%0 = call malloc(size * ptr + 4bytes)
+
+   ​                                  %1 = getelementptr i32 %0 i32 -1
+
+   ​                                  lastExpr.value = %1
+
+   如果后面还有expr：visit, get size2
+
+   ```
+   for (int i = 0; i < x; ++i) {
+   	%2 = call malloc(size2 + 4bytes)
+   	%3 = getelementptr i32 %2 i32 -1
+   	%4 = getelementptr ptr %1 i32 i
+   	store %3 -> %4
+   }
+   ```
+
+   如果是最后一个expr了：
+
+   ```
+   for (int i = 0; i < x; ++i) {
+   	%2 = alloc i32(type in array)
+   	if (type is class) call A::A(ptr %2)
+   	%3 = getelementptr ptr %1 i32 i
+   	store %2 -> %3
+   }
+   ```
+
+#### ArrayExpr
+
+```
+A.b.c[1]
+```
+
+先visit expr，expr可能是右值
+
+利用得到的value（ptr类型）
+
+getelementptr type destptr i32 index;
+
+返回值是左值
+
 # todo-list 
 
 1. refractor：ASTNode中尽量不要public
@@ -756,20 +927,8 @@ br i1 %4, label %cond.then.0, label %cond.else.0
 3. refractor：IRNode和Util不要public
 4. 是否需要private？
 5. 合并AST中的type？
-6. 内建全局函数
-7. 数组类的size()，数组的存储和new
-8. string类及其内建函数
 
 # Mark Everyday
 
-可以将targetVar改为visit完expr后把结果变量传进去（IRVariable）
+改new数组
 
-相当于visitExpr的返回值，在外层调用函数里再使用这个返回值
-
-
-
-一个exprNode访问完后若为左值，需要返回一个ptr(IRVariable)加一个值，否则只返回一个值（IREntity)(解决literal问题)
-
-callExpr: function type：返回一个funcDecl/funcname
-
-targetVar需要改名

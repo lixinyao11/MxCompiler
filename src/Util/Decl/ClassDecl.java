@@ -7,8 +7,8 @@ import java.util.HashMap;
 import AST.*;
 
 public class ClassDecl {
-  String name;
-  HashMap<String, VarType> varDcls = null;
+  public String name;
+  public HashMap<String, VarType> varDcls = null;
   HashMap<String, FuncDecl> funcDcls = null;
   
   public ClassDecl(String name) {
@@ -53,5 +53,9 @@ public class ClassDecl {
 
   public ArrayList<VarType> getMemberType() {
     return new ArrayList<>(varDcls.values());
+  }
+
+  public boolean hasBuildFunc() {
+    return funcDcls.containsKey(name);
   }
 }

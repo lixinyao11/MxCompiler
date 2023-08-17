@@ -18,7 +18,7 @@ public class GlobalVarDef {
   }
 
   public String toString() {
-    return var.toString() + " = global " + init.getType().toString() + " " + init.toString();
+    return var.toString() + " = global " + init.getType().toString() + " " + init.toString() + "\n";
   }
 
 }

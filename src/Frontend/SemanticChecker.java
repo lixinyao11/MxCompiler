@@ -51,8 +51,32 @@ public class SemanticChecker implements ASTVisitor {
     for (var stmt : node.stmt_List) {
       if (stmt != null) stmt.accept(this);
     }
+
     if (!((FuncScope)currentScope).isReturned() && !node.name.equals("main"))
       throw new SemanticError("non-void function " + node.name + " does not have return statement", node.pos);
+
+    if (!node.stmt_List.isEmpty() && !(node.stmt_List.get(node.stmt_List.size() - 1) instanceof ReturnStmtNode)) {
+      var ret = new AtomExprNode(null);
+      ret.type = new ExprType(node.retType);
+      if (node.retType.isVoid) {
+        ret = null;
+      }
+      else if (node.retType.dim > 0 || node.retType.isString || node.retType.isClass) {
+        ret.isNull = true;
+        ret.identifier = "null";
+      }
+      else if (node.retType.isBool) {
+        ret.isFalse = true;
+        ret.identifier = "false";
+      }
+      else if (node.retType.isInt) {
+        ret.isIntConst = true;
+        ret.identifier = "0";
+      }
+      else throw new Error("unknown return type");
+      node.stmt_List.add(new ReturnStmtNode(ret, null));
+    }
+
     currentScope = currentScope.parentScope;
   }
 
@@ -109,6 +133,7 @@ public class SemanticChecker implements ASTVisitor {
     for (var stmt : node.stmt_List) {
       stmt.accept(this);
     }
+    node.stmt_List.add(new ReturnStmtNode(null));
     currentScope = currentScope.parentScope;
   }
 

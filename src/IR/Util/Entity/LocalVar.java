@@ -13,11 +13,15 @@ public class LocalVar extends IRVariable {
 
   @Override
   public String toString() {
-    return "%" + name;
+    return "%_" + name;
   }
 
   @Override
   public IRType getType() {
     return type;
+  }
+
+  public String getName() {
+    return name;
   }
 }

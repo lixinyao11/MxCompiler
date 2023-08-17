@@ -3,6 +3,7 @@ import Parser.MxLexer;
 import Parser.MxParser;
 import Util.Scope.*;
 import Util.*;
+import IR.*;
 
 // import java.io.InputStream;
 // import java.io.PrintStream;
@@ -30,5 +31,9 @@ public class Main {
     GlobalScope globalScope = new GlobalScope();
     new SymbolCollector(globalScope).visit(ast);
     new SemanticChecker(globalScope).visit(ast);
+    // AST -> LLVM IR
+    IRProgram irProgram = new IRProgram();
+    new IRBuilder(irProgram, globalScope).visit(ast);
+    System.out.write(irProgram.toString().getBytes());
   }
 }

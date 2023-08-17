@@ -26,4 +26,7 @@ public class IRBlock {
   public void addInst(IRInst inst) {
     instructions.add(inst);
   }
+  public void addInst(int index, IRInst inst) {
+    instructions.add(index, inst);
+  }
 }

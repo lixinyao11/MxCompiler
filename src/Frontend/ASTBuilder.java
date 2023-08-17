@@ -235,6 +235,7 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
         atomExpr.isIntConst = true;
       } else if (ctx.primary().literal().StringConst() != null) {
         atomExpr.isStringConst = true;
+        atomExpr.identifier = atomExpr.identifier.substring(1, atomExpr.identifier.length() - 1);
       } else {
         throw new RuntimeException("AtomExpr Error");
       }

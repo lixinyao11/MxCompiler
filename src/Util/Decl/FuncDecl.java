@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import AST.*;
 
 public class FuncDecl {
-  String name = null;
-  ReturnType retType = null;
+  public String name = null;
+  public ReturnType retType = null;
   ArrayList<VarType> paraList = null;
 
   // for builtin functions

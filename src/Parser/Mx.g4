@@ -18,7 +18,7 @@ statement
     : block                                                                     #blockStmt
     | varDef ';'                                                                #vardefStmt
     | If '(' expression ')' thenStmt=statement
-        (Else elseStmt=statement)?                                             #ifStmt
+        (Else elseStmt=statement)?                                              #ifStmt
     | While '(' expression ')' statement                                        #whileStmt
     | For '(' initStmt=statement condExpr=expression? ';' stepExpr=expression? ')' statement #forStmt
     | Return expression? ';'                                                    #returnStmt
