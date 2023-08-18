@@ -20,9 +20,9 @@ public class IRProgram {
     stringLiterals = new ArrayList<>();
     funcDecls = new ArrayList<>();
     funcDecls.add(new IRFuncDecl("void", "print", "ptr"));
-    funcDecls.add(new IRFuncDecl("ptr", "_string_concat", "ptr", "ptr"));
-    funcDecls.add(new IRFuncDecl("ptr", "_string_copy", "ptr"));
-    funcDecls.add(new IRFuncDecl("i32", "_string_compare", "ptr", "ptr"));
+    funcDecls.add(new IRFuncDecl("ptr", "_string.concat", "ptr", "ptr"));
+    funcDecls.add(new IRFuncDecl("ptr", "_string.copy", "ptr"));
+    funcDecls.add(new IRFuncDecl("i32", "_string.compare", "ptr", "ptr"));
     funcDecls.add(new IRFuncDecl("ptr", "_malloc_array", "i32", "i32"));
     funcDecls.add(new IRFuncDecl("ptr", "_malloc", "i32"));
     funcDecls.add(new IRFuncDecl("void", "println", "ptr"));
@@ -31,14 +31,14 @@ public class IRProgram {
     funcDecls.add(new IRFuncDecl("ptr", "getString", null));
     funcDecls.add(new IRFuncDecl("i32", "getInt", null));
     funcDecls.add(new IRFuncDecl("ptr", "toString", "i32"));
-    funcDecls.add(new IRFuncDecl("i32", "_string_length", "ptr"));
-    var SubStringFunc = new IRFuncDecl("ptr", "_string_substring", "ptr");
+    funcDecls.add(new IRFuncDecl("i32", "_string.length", "ptr"));
+    var SubStringFunc = new IRFuncDecl("ptr", "_string.substring", "ptr");
     SubStringFunc.addArgType("i32");
     SubStringFunc.addArgType("i32");
     funcDecls.add(SubStringFunc);
 
-    funcDecls.add(new IRFuncDecl("i32", "_string_parseInt", "ptr"));
-    var OrdFunc = new IRFuncDecl("i32", "_string_ord", "ptr");
+    funcDecls.add(new IRFuncDecl("i32", "_string.parseInt", "ptr"));
+    var OrdFunc = new IRFuncDecl("i32", "_string.ord", "ptr");
     OrdFunc.addArgType("i32");
     funcDecls.add(OrdFunc);
   }

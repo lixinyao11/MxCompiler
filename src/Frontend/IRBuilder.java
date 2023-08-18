@@ -44,11 +44,6 @@ public class IRBuilder implements ASTVisitor {
     else throw new RuntimeException("IREntity: unknown type");
   }
 
-  private void exitScope() {
-    currentScope.exit(currentBlock.parent.idCnt);
-    currentScope = currentScope.parent;
-  }
-
   public void visit(ProgramNode node) {
     for (var def : node.decls) {
       def.accept(this);
@@ -77,7 +72,6 @@ public class IRBuilder implements ASTVisitor {
     }
 
 
-//    currentScope.exit(func.idCnt); // 不需要：是退出整个函数，这个module中已经不会再添加新东西了
     currentScope = currentScope.parent;
     currentBlock = null;
   }
@@ -131,15 +125,16 @@ public class IRBuilder implements ASTVisitor {
 
         // do initialization
         if (!irProgram.functions.containsKey("__init")) irProgram.functions.put("__init", new IRFunction(new IRType("void"), "__init"));
-        currentBlock = irProgram.functions.get("__init").body.get(0);
+        var tmp = irProgram.functions.get("__init");
+        currentBlock = tmp.body.get(tmp.body.size() - 1);
         pair.second.accept(this);
         currentBlock.addInst(new Store(lastExpr.value, ptr));
       }
     } else { // in local scope
       for (var pair : node.varList) {
-        currentScope.addVar(pair.first);
         int no = currentBlock.parent.idCnt.getOrDefault(pair.first, 0);
         currentBlock.parent.idCnt.put(pair.first, ++no);
+        currentScope.addVar(pair.first, no);
         LocalPtr ptr = new LocalPtr(pair.first + "." + no);
         currentBlock.addInst(new Alloca(ptr, varType));
         if (pair.second != null) { // initial value
@@ -151,6 +146,7 @@ public class IRBuilder implements ASTVisitor {
   }
   public void visit(ParaListNode node) {
     // already in entry block(currentBlock)
+    // already in a funcScope
     var tmp = currentBlock.parent;
     if (currentScope.className != null) // if in class, add a "this" parameter
       tmp.paras.add(new LocalVar(new IRType("ptr"), "this"));
@@ -160,9 +156,9 @@ public class IRBuilder implements ASTVisitor {
     }
 
     for (var para : tmp.paras) {
-      currentScope.addVar(para.getName());
       int no = currentBlock.parent.idCnt.getOrDefault(para.getName(), 0);
       currentBlock.parent.idCnt.put(para.getName(), ++no);
+      currentScope.addVar(para.getName(), no);
       var ptr = new LocalPtr(para.getName() + "." + no);
       // add: %a.1 = alloca i32
       currentBlock.addInst(new Alloca(ptr, para.getType()));
@@ -171,13 +167,14 @@ public class IRBuilder implements ASTVisitor {
     }
   }
   public void visit(ClassBuildNode node) {
+    // already in a classScope
     var func = new IRFunction(new IRType("void"), currentScope.className + ".." + node.name);
     func.paras.add(new LocalVar(new IRType("ptr"), "this"));
     irProgram.functions.put(currentScope.className + ".." + node.name, func);
     currentScope = new IRScope(currentScope);
     currentBlock = func.body.get(0);
 
-    currentScope.addVar("this");
+    currentScope.addVar("this", 1);
     func.idCnt.put("this", 1);
     var ptr = new LocalPtr("this.1");
     currentBlock.addInst(new Alloca(ptr, new IRType("ptr")));
@@ -196,7 +193,7 @@ public class IRBuilder implements ASTVisitor {
     for (var stmt : node.stmts) {
       stmt.accept(this);
     }
-    exitScope();
+    currentScope = currentScope.parent;
   }
   public void visit(IfStmtNode node) {
     node.cond.accept(this);
@@ -211,14 +208,14 @@ public class IRBuilder implements ASTVisitor {
     currentScope = new IRScope(currentScope);
     node.thenStmt.accept(this);
     currentBlock.addInst(new Jump("if.end." + no));
-    exitScope();
+    currentScope = currentScope.parent;
 
     if (node.elseStmt != null) {
       currentBlock = currentBlock.parent.addBlock("if.else." + no);
       currentScope = new IRScope(currentScope);
       node.elseStmt.accept(this);
       currentBlock.addInst(new Jump("if.end." + no));
-      exitScope();
+      currentScope = currentScope.parent;
     }
 
     currentBlock = currentBlock.parent.addBlock("if.end." + no);
@@ -234,7 +231,7 @@ public class IRBuilder implements ASTVisitor {
     currentScope = new IRScope(currentScope, 2, no);
     node.body.accept(this);
     currentBlock.addInst(new Jump("while.cond." + no));
-    exitScope();
+    currentScope = currentScope.parent;
 
     currentBlock = currentBlock.parent.addBlock("while.end." + no);
   }
@@ -264,7 +261,7 @@ public class IRBuilder implements ASTVisitor {
       node.stepExpr.accept(this);
     currentBlock.addInst(new Jump("for.cond." + no));
 
-    exitScope();
+    currentScope = currentScope.parent;
     currentBlock = currentBlock.parent.addBlock("for.end." + no);
   }
   public void visit(ContinueStmtNode node) {
@@ -304,7 +301,7 @@ public class IRBuilder implements ASTVisitor {
     if (node.type.isFunc) {
       // ! check if it is a member function
       FuncInfo tmp = null;
-      if (currentScope.className != null) {
+      if (currentScope != null && currentScope.className != null) {
         var classInfo = globalScope.getClassDecl(currentScope.className);
         if (classInfo.getFunc(node.identifier) != null) {
           var this_tmp = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
@@ -318,11 +315,11 @@ public class IRBuilder implements ASTVisitor {
     }
     if (node.isLeftValue) {
       // ! 应该先看局部变量！再看class内的成员变量，最后看全局变量
-      int no = currentBlock.parent.idCnt.getOrDefault(node.identifier, 0);
       IRVariable ptr = null;
-      if (no > 0) {
-        ptr = new LocalPtr(node.identifier + "." + no);
-      } else if (currentScope.className != null) {
+      if (currentScope != null && currentScope.getVarNo(node.identifier) > 0) { // Local variable
+        ptr = new LocalPtr(node.identifier + "." + currentScope.getVarNo(node.identifier));
+      } else if (currentScope != null && currentScope.className != null) {
+        // member variable
         ptr = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
         var this_tmp = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
         currentBlock.addInst(new Load(this_tmp, new LocalPtr("this.1")));
@@ -330,6 +327,7 @@ public class IRBuilder implements ASTVisitor {
         inst.indexs.add(new IRLiteral(String.valueOf(irProgram.structs.get(currentScope.className).getIndexOf(node.identifier)), new IRType("i32")));
         currentBlock.addInst(inst);
       } else {
+        // global variable
         ptr = new GlobalPtr(node.identifier);
       }
 
@@ -340,7 +338,22 @@ public class IRBuilder implements ASTVisitor {
     }
     if (node.isStringConst) {
       GlobalPtr ptr = new GlobalPtr("string." + irProgram.stringLiteralCnt++);
-      irProgram.stringLiterals.add(new StringLiteralDef(ptr, node.identifier));
+      StringBuilder tmp = new StringBuilder();
+      for (int i = 0; i < node.identifier.length(); ++i) {
+        char c = node.identifier.charAt(i);
+        if (c == '\\') {
+          ++i;
+          switch (node.identifier.charAt(i)) {
+            case 'n' -> tmp.append('\n');
+            case '\"' -> tmp.append('\"');
+            case '\\' -> tmp.append('\\');
+            default -> throw new RuntimeException("unknown escape character");
+          }
+        } else {
+          tmp.append(c);
+        }
+      }
+      irProgram.stringLiterals.add(new StringLiteralDef(ptr, tmp.toString()));
       lastExpr = new ExprVar(ptr, null, null);
     } else {
       var type = transType(node.type);
@@ -394,19 +407,13 @@ public class IRBuilder implements ASTVisitor {
     var rhsVar = lastExpr.value;
 
     LocalVar retVar = new LocalVar(transType(node.type), String.valueOf(currentBlock.parent.varCnt++));
-    if (node.lhs.type.dim == 0 && node.lhs.type.isString && !node.op.equals("==") && !node.op.equals("!=")) {
+    if (node.lhs.type.dim == 0 && node.lhs.type.isString) {
       if (node.op.equals("+")) {
-        currentBlock.addInst(new Call(retVar, "_string_concat", lhsVar, rhsVar));
+        currentBlock.addInst(new Call(retVar, "_string.concat", lhsVar, rhsVar));
       } else {
         var tmp = new LocalVar(new IRType("i32"), String.valueOf(currentBlock.parent.varCnt++));
-        currentBlock.addInst(new Call(tmp, "_string_compare", lhsVar, rhsVar));
-        switch (node.op) {
-          case ">" -> currentBlock.addInst(new Icmp(retVar, ">", tmp, new IRLiteral("0", new IRType("i32"))));
-          case ">=" -> currentBlock.addInst(new Icmp(retVar, ">=", tmp, new IRLiteral("0", new IRType("i32"))));
-          case "<" -> currentBlock.addInst(new Icmp(retVar, "<", tmp, new IRLiteral("0", new IRType("i32"))));
-          case "<=" -> currentBlock.addInst(new Icmp(retVar, "<=", tmp, new IRLiteral("0", new IRType("i32"))));
-          default -> throw new RuntimeException("unknown string operator");
-        }
+        currentBlock.addInst(new Call(tmp, "_string.compare", lhsVar, rhsVar));
+        currentBlock.addInst(new Icmp(retVar, node.op, tmp, new IRLiteral("0", new IRType("i32"))));
       }
       lastExpr = new ExprVar(retVar, null, null);
       return;
@@ -459,7 +466,7 @@ public class IRBuilder implements ASTVisitor {
 
     if (node.lhs.type.dim == 0 && node.lhs.type.isString) {
       var tmp = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
-      currentBlock.addInst(new Call(tmp, "_string_copy", lastExpr.value));
+      currentBlock.addInst(new Call(tmp, "_string.copy", lastExpr.value));
       currentBlock.addInst(new Store(tmp, dst));
     } else {
       currentBlock.addInst(new Store(lastExpr.value, dst));
@@ -522,7 +529,7 @@ public class IRBuilder implements ASTVisitor {
       if (memFunc != null) {
         if (!(lastExpr.value instanceof LocalVar))
           throw new RuntimeException("this is not a pointer");
-        lastExpr = new ExprVar(null, null, new FuncInfo((classInfo.name.equals("string")) ? "_string_" + memFunc.name : classInfo.name + ".." + memFunc.name,
+        lastExpr = new ExprVar(null, null, new FuncInfo((classInfo.name.equals("string")) ? "_string." + memFunc.name : classInfo.name + ".." + memFunc.name,
                 transType(new ExprType(memFunc.retType)), (LocalVar) lastExpr.value));
         return;
       }
@@ -620,18 +627,31 @@ public class IRBuilder implements ASTVisitor {
   }
   public void visit(ConditionalExprNode node) {
     node.cond.accept(this);
-
+    LocalVar retdst = null;
+    if (!node.type.isVoid) {
+      retdst = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
+      currentBlock.addInst(new Alloca(retdst, transType(node.type)));
+    }
     int no = currentBlock.parent.condCnt++;
     currentBlock.addInst(new Br((LocalVar) lastExpr.value, "cond.then." + no, "cond.else." + no));
 
     currentBlock = currentBlock.parent.addBlock("cond.then." + no);
     node.thenExpr.accept(this);
+    if (!node.type.isVoid) currentBlock.addInst(new Store(lastExpr.value, retdst));
     currentBlock.addInst(new Jump("cond.end." + no));
 
     currentBlock = currentBlock.parent.addBlock("cond.else." + no);
     node.elseExpr.accept(this);
+    if (!node.type.isVoid) currentBlock.addInst(new Store(lastExpr.value, retdst));
     currentBlock.addInst(new Jump("cond.end." + no));
 
     currentBlock = currentBlock.parent.addBlock("cond.end." + no);
+    if (!node.type.isVoid) {
+      var ret = new LocalVar(transType(node.type), String.valueOf(currentBlock.parent.varCnt++));
+      currentBlock.addInst(new Load(ret, retdst));
+      lastExpr = new ExprVar(ret, retdst, null);
+    } else {
+      lastExpr = null;
+    }
   }
 }

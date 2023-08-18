@@ -439,7 +439,7 @@ break continue等
 
 retType, paras, name, body
 
-存map<String, int>记录每个名字的出现次数
+存map<String, int>记录每个名字的出现次数，只增不减
 
 存一个cnt作为函数内临时变量%0, %1, %2 ...的计数
 
@@ -476,6 +476,8 @@ bool -> i1
 `loopType`：不在循环内：0，while：1，for：2
 
 `loopNum`：循环的label编号
+
+`map<String, int>`存该scope内定义过的所有var和对应的编号，在遇到AtomExpr事访问此map查找var的编号
 
 ### Inst
 
@@ -952,8 +954,14 @@ getelementptr type destptr i32 index;
 
 # Mark Everyday
 
-短路求值（三目
-
 getelementptr ptr %0, i32 0不会解引用，会返回原ptr%0
 
 转义字符
+
+new 不能alloca，要malloc开一个全局map记录类型对应的size
+
+只有malloc的时候会涉及到类型对应的字节数
+
+ptr需要改为8个字节（64位机器）
+
+短路求值：必须alloca一个i1来存最终的返回值

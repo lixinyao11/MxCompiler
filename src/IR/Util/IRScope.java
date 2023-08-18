@@ -5,7 +5,7 @@ import java.util.HashSet;
 
 public class IRScope {
   public IRScope parent = null;
-  HashSet<String> var_names = null;
+  HashMap<String, Integer> varNames = null;
   public String className = null; // null: not in class, else: in class
   public int loopType = 0; // not in loop: 0, in for: 1, in while: 2
   public int loopNo = 0;
@@ -17,7 +17,7 @@ public class IRScope {
       this.loopType = parent.loopType;
       this.loopNo = parent.loopNo;
     }
-    var_names = new HashSet<>();
+    varNames = new HashMap<>();
   }
 
   public IRScope(IRScope parent, String className) {
@@ -27,7 +27,7 @@ public class IRScope {
       this.loopType = parent.loopType;
       this.loopNo = parent.loopNo;
     }
-    var_names = new HashSet<>();
+    varNames = new HashMap<>();
   }
 
   public IRScope(IRScope parent, int loopType, int loopNum) {
@@ -35,17 +35,16 @@ public class IRScope {
     if (parent != null) this.className = parent.className;
     this.loopType = loopType;
     this.loopNo = loopNum;
-    var_names = new HashSet<>();
+    varNames = new HashMap<>();
   }
 
-  public void addVar(String name) {
-    var_names.add(name);
+  public void addVar(String name, int no) {
+    varNames.put(name, no);
   }
 
-  public void exit(HashMap<String, Integer> idCnt) {
-    for (String name : var_names) {
-      int cnt = idCnt.get(name);
-      idCnt.replace(name, cnt - 1);
-    }
+  public int getVarNo(String name) {
+    if (varNames.containsKey(name)) return varNames.get(name);
+    else if (parent != null) return parent.getVarNo(name);
+    else return -1;
   }
 }

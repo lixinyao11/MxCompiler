@@ -1,9 +1,0 @@
-
-int main() {
-    int[][] step;
-
-    step = new int[102][102];
-
-    step[0][0] = 0;
-    return step[54][1];
-}
