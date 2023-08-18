@@ -8,8 +8,7 @@ import IR.Inst.*;
 import IR.Util.*;
 import IR.Util.Entity.*;
 import Util.Scope.*;
-import Util.Type.*;
-import Util.*;
+import AST.Type.*;
 
 import java.util.ArrayList;
 
@@ -31,8 +30,8 @@ public class IRBuilder implements ASTVisitor {
     if (type.equals("ptr")) return 8;
     if (type.equals("bool")) return 1;
     var tmp = globalScope.getClassDecl(type);
-    if (tmp == null || tmp.size == 0) throw new RuntimeException("IRBuilder: unknown type");
-    return tmp.size;
+    if (tmp == null || tmp.getSize() == 0) throw new RuntimeException("IRBuilder: unknown type");
+    return tmp.getSize();
   }
 
   private IRType transType(ExprType type) {
@@ -90,7 +89,7 @@ public class IRBuilder implements ASTVisitor {
       else if (member.type.isBool) size += num;
       else size += 4 * num;
     }
-    globalScope.getClassDecl(node.name).size = size;
+    globalScope.getClassDecl(node.name).setSize(size);
     irProgram.structs.put(node.name, new StructDef(node.name, memberTypes, names));
     currentScope = new IRScope(currentScope, node.name);
 
@@ -306,10 +305,10 @@ public class IRBuilder implements ASTVisitor {
         if (classInfo.getFunc(node.identifier) != null) {
           var this_tmp = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
           currentBlock.addInst(new Load(this_tmp, new LocalPtr("this.1")));
-          tmp = new FuncInfo(currentScope.className + ".." + node.identifier, transType(new ExprType(node.type.funcDecl.retType)), this_tmp);
+          tmp = new FuncInfo(currentScope.className + ".." + node.identifier, transType(node.type.funcDecl.getRetType()), this_tmp);
         }
       }
-      if (tmp == null) tmp = new FuncInfo(node.identifier, transType(new ExprType(node.type.funcDecl.retType)), null);
+      if (tmp == null) tmp = new FuncInfo(node.identifier, transType(node.type.funcDecl.getRetType()), null);
       lastExpr = new ExprVar(null, null, tmp);
       return;
     }
@@ -524,13 +523,14 @@ public class IRBuilder implements ASTVisitor {
       currentBlock.addInst(new Load(ret, tmp));
       lastExpr = new ExprVar(ret, null, null);
     } else {
-      var classInfo = globalScope.getClassDecl(node.obj.type.name);
+      var className = node.obj.type.name;
+      var classInfo = globalScope.getClassDecl(className);
       var memFunc = classInfo.getFunc(node.member);
       if (memFunc != null) {
         if (!(lastExpr.value instanceof LocalVar))
           throw new RuntimeException("this is not a pointer");
-        lastExpr = new ExprVar(null, null, new FuncInfo((classInfo.name.equals("string")) ? "_string." + memFunc.name : classInfo.name + ".." + memFunc.name,
-                transType(new ExprType(memFunc.retType)), (LocalVar) lastExpr.value));
+        lastExpr = new ExprVar(null, null, new FuncInfo((className.equals("string")) ? "_string." + node.member : className + ".." + node.member,
+                transType(memFunc.getRetType()), (LocalVar) lastExpr.value));
         return;
       }
 
@@ -538,8 +538,8 @@ public class IRBuilder implements ASTVisitor {
       if (memVar == null) throw new RuntimeException("no such member");
 
       var tmp = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
-      var inst = new GetElementPtr(tmp, "%class." + classInfo.name, (LocalVar) lastExpr.value, new IRLiteral("0", new IRType("i32")));
-      inst.indexs.add(new IRLiteral(String.valueOf(irProgram.structs.get(classInfo.name).getIndexOf(node.member)), new IRType("i32")));
+      var inst = new GetElementPtr(tmp, "%class." + classInfo, (LocalVar) lastExpr.value, new IRLiteral("0", new IRType("i32")));
+      inst.indexs.add(new IRLiteral(String.valueOf(irProgram.structs.get(className).getIndexOf(node.member)), new IRType("i32")));
       currentBlock.addInst(inst);
       var value = new LocalVar(transType(new ExprType(memVar)), String.valueOf(currentBlock.parent.varCnt++));
       currentBlock.addInst(new Load(value, tmp));
@@ -609,7 +609,7 @@ public class IRBuilder implements ASTVisitor {
       var tmp = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
       currentBlock.addInst(new Call(tmp, "_malloc", new IRLiteral(String.valueOf(getSize(node.type.name)), new IRType("i32"))));
 //      currentBlock.addInst(new Alloca(tmp, node.type.name));
-      if (globalScope.getClassDecl(node.type.name).hasBuildFunc)
+      if (globalScope.getClassDecl(node.type.name).hasBuildFunc())
         currentBlock.addInst(new Call(null, node.type.name + ".." + node.type.name, tmp));
       lastExpr = new ExprVar(tmp, null, null);
       return;

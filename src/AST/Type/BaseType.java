@@ -1,4 +1,4 @@
-package Util.Type;
+package AST.Type;
 
 public class BaseType {
   public boolean isInt = false, isBool = false, isString = false, isClass = false;

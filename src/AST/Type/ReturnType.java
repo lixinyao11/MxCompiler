@@ -1,6 +1,4 @@
-package Util.Type;
-
-import Util.*;
+package AST.Type;
 
 public class ReturnType extends VarType {
   public boolean isVoid = false;

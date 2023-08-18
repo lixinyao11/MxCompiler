@@ -4,8 +4,7 @@ import java.util.HashMap;
 
 import Util.Position;
 import Util.SemanticError;
-import Util.Decl.FuncDecl;
-import Util.Type.*;
+import AST.Type.*;
 
 public class Scope {
   public Scope parentScope = null;

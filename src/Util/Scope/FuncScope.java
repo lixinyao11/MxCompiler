@@ -2,7 +2,7 @@ package Util.Scope;
 
 import Util.Position;
 import Util.SemanticError;
-import Util.Type.*;
+import AST.Type.*;
 
 public class FuncScope extends Scope {
   ReturnType returnType = null;

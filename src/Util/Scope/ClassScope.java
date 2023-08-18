@@ -4,7 +4,7 @@ import java.util.HashMap;
 import AST.*;
 import Util.Decl.FuncDecl;
 import Util.*;
-import Util.Type.ExprType;
+import AST.Type.ExprType;
 
 public class ClassScope extends Scope {
   HashMap<String, FuncDecl> funcdcls = null;

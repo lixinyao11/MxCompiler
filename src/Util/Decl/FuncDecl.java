@@ -1,12 +1,12 @@
 package Util.Decl;
 
-import Util.Type.*;
+import AST.Type.*;
 import java.util.ArrayList;
 import AST.*;
 
 public class FuncDecl {
-  public String name = null;
-  public ReturnType retType = null;
+  String name = null;
+  ReturnType retType = null;
   ArrayList<VarType> paraList = null;
 
   // for builtin functions
@@ -28,9 +28,7 @@ public class FuncDecl {
   }
 
   public boolean returnTypeIs(ReturnType type) {
-    if (retType.equals(type))
-      return true;
-    return false;
+    return retType.equals(type);
   }
   
   public ReturnType calledByArgs(ArrayList<ExprType> paras) {
@@ -41,6 +39,10 @@ public class FuncDecl {
         return null;
     }
     return retType;
+  }
+
+  public ExprType getRetType() {
+    return new ExprType(retType);
   }
 
 }

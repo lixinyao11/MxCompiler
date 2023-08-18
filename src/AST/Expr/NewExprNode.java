@@ -1,7 +1,7 @@
 package AST.Expr;
 
 import Util.Position;
-import Util.Type.*;
+import AST.Type.*;
 import AST.*;
 import java.util.ArrayList;
 

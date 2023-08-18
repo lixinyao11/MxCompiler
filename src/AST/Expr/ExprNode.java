@@ -3,7 +3,7 @@ package AST.Expr;
 import AST.ASTNode;
 import Util.*;
 import AST.*;
-import Util.Type.*;
+import AST.Type.*;
 
 abstract public class ExprNode extends ASTNode {
   public ExprType type = null;

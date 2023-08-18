@@ -7,7 +7,7 @@ import Parser.MxBaseVisitor;
 import Parser.MxParser;
 import Util.*;
 import Util.Position;
-import Util.Type.*;
+import AST.Type.*;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class ASTBuilder extends MxBaseVisitor<ASTNode> {

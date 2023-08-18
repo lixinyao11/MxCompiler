@@ -1,17 +1,16 @@
 package Util.Decl;
 
-import Util.Type.*;
+import AST.Type.*;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import AST.*;
 
 public class ClassDecl {
-  public String name;
-  public HashMap<String, VarType> varDcls = null;
+  String name;
+  HashMap<String, VarType> varDcls = null;
   HashMap<String, FuncDecl> funcDcls = null;
-  public boolean hasBuildFunc = false;
-  public int size = 0;
+  boolean hasBuildFunc = false;
+  int size = 0; // for ir
   
   public ClassDecl(String name) {
     this.name = name;
@@ -54,6 +53,17 @@ public class ClassDecl {
     if (!varDcls.containsKey(name))
       return null;
     return varDcls.get(name);
+  }
+
+  public boolean hasBuildFunc() {
+    return hasBuildFunc;
+  }
+
+  public void setSize(int size) {
+    this.size = size;
+  }
+  public int getSize() {
+    return size;
   }
 
 }

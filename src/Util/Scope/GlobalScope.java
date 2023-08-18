@@ -3,7 +3,7 @@ package Util.Scope;
 import Util.*;
 import Util.SemanticError;
 import Util.Decl.*;
-import Util.Type.*;
+import AST.Type.*;
 
 public class GlobalScope extends BuiltinScope {
 

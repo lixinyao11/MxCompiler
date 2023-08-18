@@ -3,7 +3,7 @@ package AST;
 import java.util.ArrayList;
 
 import Util.*;
-import Util.Type.*;
+import AST.Type.*;
 
 public class ParaListNode extends ASTNode {
   public ArrayList<Pair<VarType, String>> paras = null;

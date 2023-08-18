@@ -2,7 +2,7 @@ package AST;
 
 import AST.Expr.*;
 import Util.*;
-import Util.Type.*;
+import AST.Type.*;
 import java.util.ArrayList;
 
 public class VarDefNode extends ASTNode {

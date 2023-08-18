@@ -1,4 +1,4 @@
-package Util.Type;
+package AST.Type;
 
 public class VarType extends BaseType {
   public int dim = 0;

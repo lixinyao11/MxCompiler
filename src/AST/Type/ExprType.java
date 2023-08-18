@@ -1,4 +1,4 @@
-package Util.Type;
+package AST.Type;
 
 import Util.Decl.*;
 

@@ -5,7 +5,7 @@ import AST.Expr.*;
 import AST.Stmt.*;
 import Util.Scope.*;
 import Util.Decl.*;
-import Util.Type.*;
+import AST.Type.*;
 import Util.*;
 
 import java.util.ArrayList;
