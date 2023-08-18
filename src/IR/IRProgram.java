@@ -24,6 +24,7 @@ public class IRProgram {
     funcDecls.add(new IRFuncDecl("ptr", "_string_copy", "ptr"));
     funcDecls.add(new IRFuncDecl("i32", "_string_compare", "ptr", "ptr"));
     funcDecls.add(new IRFuncDecl("ptr", "_malloc_array", "i32", "i32"));
+    funcDecls.add(new IRFuncDecl("ptr", "_malloc", "i32"));
     funcDecls.add(new IRFuncDecl("void", "println", "ptr"));
     funcDecls.add(new IRFuncDecl("void", "printInt", "i32"));
     funcDecls.add(new IRFuncDecl("void", "printlnInt", "i32"));

@@ -26,6 +26,15 @@ public class IRBuilder implements ASTVisitor {
     this.globalScope = globalScope;
   }
 
+  private int getSize(String type) {
+    if (type.equals("int")) return 4;
+    if (type.equals("ptr")) return 8;
+    if (type.equals("bool")) return 1;
+    var tmp = globalScope.getClassDecl(type);
+    if (tmp == null || tmp.size == 0) throw new RuntimeException("IRBuilder: unknown type");
+    return tmp.size;
+  }
+
   private IRType transType(ExprType type) {
     if (type.isFunc) throw new RuntimeException("IREntity: function type");
     if (type.isVoid) return new IRType("void");
@@ -75,12 +84,19 @@ public class IRBuilder implements ASTVisitor {
   public void visit(ClassDefNode node) {
     ArrayList<IRType> memberTypes = new ArrayList<>();
     ArrayList<String> names = new ArrayList<>();
+
+    int size = 0;
     for (var member : node.varDef_list) {
-      for (int i = 0; i < member.varList.size(); ++i) {
+      int num = member.varList.size();
+      for (int i = 0; i < num; ++i) {
         memberTypes.add(transType(new ExprType(member.type)));
         names.add(member.varList.get(i).first);
       }
+      if (member.type.dim > 0 || member.type.isString || member.type.isClass) size += 8 * num;
+      else if (member.type.isBool) size += num;
+      else size += 4 * num;
     }
+    globalScope.getClassDecl(node.name).size = size;
     irProgram.structs.put(node.name, new StructDef(node.name, memberTypes, names));
     currentScope = new IRScope(currentScope, node.name);
 
@@ -342,29 +358,35 @@ public class IRBuilder implements ASTVisitor {
 
     if (node.op.equals("&&") || node.op.equals("||")) {
       int no = currentBlock.parent.ifCnt++;
+      var ret = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
+      currentBlock.addInst(new Alloca(ret, new IRType("i1"))); // for the result of the hole expression
       // * lhsVar可能是literal而不是LocalVar？
       currentBlock.addInst(new Br((LocalVar) lhsVar, "if.then." + no, "if.else." + no));
 
       currentBlock = currentBlock.parent.addBlock("if.then." + no);
       if (node.op.equals("&&")) {
         node.rhs.accept(this);
+        currentBlock.addInst(new Store(lastExpr.value, ret));
         currentBlock.addInst(new Jump("if.end." + no));
       } else {
+        currentBlock.addInst(new Store(lhsVar, ret));
         currentBlock.addInst(new Jump("if.end." + no));
       }
 
       currentBlock = currentBlock.parent.addBlock("if.else." + no);
       if (node.op.equals("&&")) {
+        currentBlock.addInst(new Store(lhsVar, ret));
         currentBlock.addInst(new Jump("if.end." + no));
       } else {
         node.rhs.accept(this);
+        currentBlock.addInst(new Store(lastExpr.value, ret));
         currentBlock.addInst(new Jump("if.end." + no));
       }
 
       currentBlock = currentBlock.parent.addBlock("if.end." + no);
-      var ret = new LocalVar(new IRType("i1"), String.valueOf(currentBlock.parent.varCnt++));
-      currentBlock.addInst(new Binary(ret, node.op, lhsVar, lastExpr.value));
-      lastExpr = new ExprVar(ret, null, null);
+      var ret_load = new LocalVar(new IRType("i1"), String.valueOf(currentBlock.parent.varCnt++));
+      currentBlock.addInst(new Load(ret_load, ret));
+      lastExpr = new ExprVar(ret_load, null, null);
       return;
     }
 
@@ -522,19 +544,18 @@ public class IRBuilder implements ASTVisitor {
     if (layer == sizes.size() - 1) {
       var size = sizes.get(layer);
       LocalVar ret = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
-      if (type == null || type.isString || type.isClass) {
-        currentBlock.addInst(new Call(ret, "_malloc_array", new IRLiteral("8", new IRType("i32")), size));
-      } else if (type.isBool) {
-        currentBlock.addInst(new Call(ret, "_malloc_array", new IRLiteral( "1", new IRType("i32")), size));
-      } else if (type.isInt) {
-        currentBlock.addInst(new Call(ret, "_malloc_array", new IRLiteral("4", new IRType("i32")), size));
-      } else throw new RuntimeException("unknown type");
+      String tmp = null;
+      if (type == null || type.isString || type.isClass) tmp = "ptr";
+      else if (type.isBool) tmp = "bool";
+      else if (type.isInt) tmp = "int";
+      else throw new RuntimeException("unknown type");
+      currentBlock.addInst(new Call(ret, "_malloc_array", new IRLiteral(String.valueOf(getSize(tmp)), new IRType("i32")), size));
       return ret;
     }
 
     var size = sizes.get(layer);
     LocalVar ret = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
-    currentBlock.addInst(new Call(ret, "_malloc_array", new IRLiteral("8", new IRType("i32")), size));
+    currentBlock.addInst(new Call(ret, "_malloc_array", new IRLiteral(String.valueOf(getSize("ptr")), new IRType("i32")), size));
 
     // for.init: int i = 0
     int no = currentBlock.parent.forCnt++;
@@ -577,8 +598,10 @@ public class IRBuilder implements ASTVisitor {
   public void visit(NewExprNode node) {
     if (node.type.dim == 0) {
       // single class-type variable
+      // ! alloca is stack memory, malloc is heap memory
       var tmp = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
-      currentBlock.addInst(new Alloca(tmp, node.type.name));
+      currentBlock.addInst(new Call(tmp, "_malloc", new IRLiteral(String.valueOf(getSize(node.type.name)), new IRType("i32"))));
+//      currentBlock.addInst(new Alloca(tmp, node.type.name));
       if (globalScope.getClassDecl(node.type.name).hasBuildFunc)
         currentBlock.addInst(new Call(null, node.type.name + ".." + node.type.name, tmp));
       lastExpr = new ExprVar(tmp, null, null);

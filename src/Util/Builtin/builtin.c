@@ -1,10 +1,12 @@
+typedef unsigned int size_t;
+
 int scanf(const char *format, ...);
 
 int printf(const char *format, ...);
 
 int sprintf(char *str, const char *format, ...);
 
-void *malloc(unsigned long size); // NOLINT
+void *malloc(size_t size); // NOLINT
 
 void print(char *s) { printf("%s", s); }
 
@@ -18,6 +20,10 @@ int *_malloc_array(int size, int length) { // size 为每个元素占几个字�
     int *tmp = (int *) malloc(size * length + 4);
     tmp[0] = length;
     return tmp + 1;
+}
+
+void *_malloc(int size) {
+    return malloc(size);
 }
 
 char *getString() {

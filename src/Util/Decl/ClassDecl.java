@@ -11,6 +11,7 @@ public class ClassDecl {
   public HashMap<String, VarType> varDcls = null;
   HashMap<String, FuncDecl> funcDcls = null;
   public boolean hasBuildFunc = false;
+  public int size = 0;
   
   public ClassDecl(String name) {
     this.name = name;
@@ -53,10 +54,6 @@ public class ClassDecl {
     if (!varDcls.containsKey(name))
       return null;
     return varDcls.get(name);
-  }
-
-  public ArrayList<VarType> getMemberType() {
-    return new ArrayList<>(varDcls.values());
   }
 
 }

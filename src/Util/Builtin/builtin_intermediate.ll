@@ -90,7 +90,7 @@ define dso_local noalias ptr @toString(i32 noundef %0) local_unnamed_addr #6 {
 declare dso_local noundef i32 @sprintf(ptr noalias nocapture noundef writeonly, ptr nocapture noundef readonly, ...) local_unnamed_addr #6
 
 ; Function Attrs: nofree norecurse nosync nounwind memory(argmem: read)
-define dso_local i32 @_string.length(ptr nocapture noundef readonly %0) local_unnamed_addr #7 {
+define dso_local i32 @_string_length(ptr nocapture noundef readonly %0) local_unnamed_addr #7 {
   br label %2
 
 2:                                                ; preds = %2, %1
@@ -106,7 +106,7 @@ define dso_local i32 @_string.length(ptr nocapture noundef readonly %0) local_un
 }
 
 ; Function Attrs: nofree nounwind memory(write, argmem: read, inaccessiblemem: readwrite)
-define dso_local noalias ptr @_string.substring(ptr nocapture noundef readonly %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #8 {
+define dso_local noalias ptr @_string_substring(ptr nocapture noundef readonly %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #8 {
   %4 = sub nsw i32 %2, %1
   %5 = add nsw i32 %4, 1
   %6 = tail call ptr @malloc(i32 noundef %5) #11
@@ -131,7 +131,7 @@ define dso_local noalias ptr @_string.substring(ptr nocapture noundef readonly %
 }
 
 ; Function Attrs: nofree norecurse nosync nounwind memory(argmem: read)
-define dso_local i32 @_string.parseInt(ptr nocapture noundef readonly %0) local_unnamed_addr #7 {
+define dso_local i32 @_string_parseInt(ptr nocapture noundef readonly %0) local_unnamed_addr #7 {
   %2 = load i8, ptr %0, align 1, !tbaa !8
   %3 = icmp eq i8 %2, 45
   %4 = zext i1 %3 to i32
@@ -162,7 +162,7 @@ define dso_local i32 @_string.parseInt(ptr nocapture noundef readonly %0) local_
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(argmem: read)
-define dso_local i32 @_string.ord(ptr nocapture noundef readonly %0, i32 noundef %1) local_unnamed_addr #9 {
+define dso_local i32 @_string_ord(ptr nocapture noundef readonly %0, i32 noundef %1) local_unnamed_addr #9 {
   %3 = getelementptr inbounds i8, ptr %0, i32 %1
   %4 = load i8, ptr %3, align 1, !tbaa !8
   %5 = zext i8 %4 to i32
@@ -170,7 +170,7 @@ define dso_local i32 @_string.ord(ptr nocapture noundef readonly %0, i32 noundef
 }
 
 ; Function Attrs: nofree norecurse nosync nounwind memory(argmem: read)
-define dso_local i32 @_string.compare(ptr nocapture noundef readonly %0, ptr nocapture noundef readonly %1) local_unnamed_addr #7 {
+define dso_local i32 @_string_compare(ptr nocapture noundef readonly %0, ptr nocapture noundef readonly %1) local_unnamed_addr #7 {
   %3 = load i8, ptr %0, align 1, !tbaa !8
   %4 = icmp eq i8 %3, 0
   br i1 %4, label %18, label %5
@@ -211,7 +211,7 @@ define dso_local i32 @_string.compare(ptr nocapture noundef readonly %0, ptr noc
 }
 
 ; Function Attrs: nofree nounwind memory(write, argmem: read, inaccessiblemem: readwrite)
-define dso_local noalias ptr @_string.concat(ptr nocapture noundef readonly %0, ptr nocapture noundef readonly %1) local_unnamed_addr #8 {
+define dso_local noalias ptr @_string_concat(ptr nocapture noundef readonly %0, ptr nocapture noundef readonly %1) local_unnamed_addr #8 {
   br label %3
 
 3:                                                ; preds = %3, %2
@@ -269,7 +269,7 @@ define dso_local noalias ptr @_string.concat(ptr nocapture noundef readonly %0, 
 }
 
 ; Function Attrs: nofree nounwind memory(write, argmem: read, inaccessiblemem: readwrite)
-define dso_local noalias ptr @_string.copy(ptr nocapture noundef readonly %0) local_unnamed_addr #8 {
+define dso_local noalias ptr @_string_copy(ptr nocapture noundef readonly %0) local_unnamed_addr #8 {
   br label %2
 
 2:                                                ; preds = %2, %1
