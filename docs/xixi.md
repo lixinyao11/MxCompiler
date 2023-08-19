@@ -944,24 +944,76 @@ getelementptr type destptr i32 index;
 
 返回值是左值
 
-# todo-list 
+# Codegen
 
-1. refractor：ASTNode中尽量不要public
-2. refractor：util/里的一些东西移到AST/
-3. refractor：IRNode和Util不要public
-4. 是否需要private？
-5. 合并AST中的type？
+## structure
+
+* sections
+  * data: lobalVar
+  * rodata: stringLIiteral
+  * insts
+    * inst
+    * operand
+      * reg
+      * number
+      * label(br, call, j)
+      * global label(`%hi(a)`)
+
+## visit IR
+
+### structDef
+
+记录每个类的大小、元素的位置（每个变量都占用4bytes）
+
+### GlobalPtr, StringLiteral
+
+对应label（注意转义字符）
+
+### IRFunction
+
+需要知道：函数过程中用到了几个临时寄存器，需要作为callee保存几个寄存器，如果有函数调用，需要作为caller保存几个寄存器。
+
+以及ir中的虚拟寄存器，哪些是无意义的（可跳过这句话），哪些是不需要分配空间的（合并指令）哪些是需要分配空间的（并标号）
+
+函数的最开始：分配栈空间，保存作为callee需要保存的寄存器
+
+返回前：恢复栈空间，恢复作为callee保存的寄存器
+
+如果一个虚拟寄存器，只在被定义时出现，后续没有用到，则无意义，这句话可以删去
+
+对于%1 = alloca type，
+
+#### 需要的栈空间
+
+1. 局部变量：全部存入内存
+
+2. alloca：分配内存
+3. 16bytes对齐（16的倍数）
+4. 需要用到的callee寄存器(谁要改保存谁)，需要保存到栈，也需要计算空间
+
+**先扫一遍函数，计算整个函数需要的栈空间大小，并对其中需要分配的所有东西（保存的寄存器和虚拟寄存器(局部变量)）进行一个函数内唯一的编号(map)，方便之后寻址**
+
+进入函数时sp减小，返回前加回去
+
+`addi sp, sp, 64`
+
+### 准备参数
+
+入参1~入参7放在a0-a7寄存器，多余部分放入栈（sp指向第一个放不下的参数）
+
+### 保存caller寄存器的值
+
+### 调用函数
+
+call foo
+
+### 使用寄存器前：保存callee寄存器的值
+
+### 返回：恢复callee寄存器，返回a0
+
+
+
+
 
 # Mark Everyday
 
-getelementptr ptr %0, i32 0不会解引用，会返回原ptr%0
-
-转义字符
-
-new 不能alloca，要malloc开一个全局map记录类型对应的size
-
-只有malloc的时候会涉及到类型对应的字节数
-
-ptr需要改为8个字节（64位机器）
-
-短路求值：必须alloca一个i1来存最终的返回值

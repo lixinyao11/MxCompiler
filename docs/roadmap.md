@@ -32,7 +32,7 @@ x operator x
 
 利用插件
 
-## g4->AST
+## g4->ast
 
 ### ASTNodes
 
@@ -42,7 +42,7 @@ x operator x
 
 ### SemanticChecker
 
-## AST->IR
+## ast->ir
 
 
 # todo-list

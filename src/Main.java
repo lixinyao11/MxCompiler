@@ -1,9 +1,9 @@
-import Frontend.*;
-import Parser.MxLexer;
-import Parser.MxParser;
-import Util.Scope.*;
-import Util.*;
-import IR.*;
+import frontend.*;
+import parser.MxLexer;
+import parser.MxParser;
+import util.scope.*;
+import util.*;
+import ir.*;
 
 // import java.io.InputStream;
 // import java.io.PrintStream;
@@ -13,7 +13,7 @@ import IR.*;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.tree.*;
 
-import AST.ProgramNode;
+import ast.ProgramNode;
 public class Main {
   public static void main(String[] args) throws Exception {
     // CharStream input = CharStreams.fromStream(new FileInputStream("input.mx"));
