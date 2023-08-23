@@ -1,10 +1,11 @@
-package ir;
+package ir.module;
 
 import ir.util.IRType;
+import ir.IRVisitor;
 
 import java.util.ArrayList;
 
-public class IRFuncDecl {
+public class IRFuncDecl extends IRModule {
   IRType retType = null;
   String name = null;
   ArrayList<IRType> argsType = null;
@@ -27,7 +28,7 @@ public class IRFuncDecl {
   public void addArgType(String argType) {
     argsType.add(new IRType(argType));
   }
-
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("declare ").append(retType.toString()).append(" @").append(name).append("(");
@@ -37,5 +38,9 @@ public class IRFuncDecl {
     }
     sb.append(")\n");
     return sb.toString();
+  }
+  @Override
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }

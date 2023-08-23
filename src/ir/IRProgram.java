@@ -1,14 +1,16 @@
 package ir;
 
+import ir.module.*;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class IRProgram {
   public ArrayList<IRFuncDecl> funcDecls = null;
-  public HashMap<String, StructDef> structs = null; // 原class name，不带"class.
-  public HashMap<String, IRFunction> functions = null;
-  public HashMap<String, GlobalVarDef> globals = null;
-  public ArrayList<StringLiteralDef> stringLiterals = null;
+  public HashMap<String, IRStructDef> structs = null; // 原class name，不带"class.
+  public HashMap<String, IRFuncDef> functions = null;
+  public HashMap<String, IRGlobalVarDef> globals = null;
+  public ArrayList<IRStringLiteralDef> stringLiterals = null;
   public int stringLiteralCnt = 0;
 
   public IRProgram() {
@@ -46,16 +48,16 @@ public class IRProgram {
     for (IRFuncDecl funcDecl : funcDecls) {
       sb.append(funcDecl.toString());
     }
-    for (StructDef struct : structs.values()) {
+    for (IRStructDef struct : structs.values()) {
       sb.append(struct.toString());
     }
-    for (GlobalVarDef global : globals.values()) {
+    for (IRGlobalVarDef global : globals.values()) {
       sb.append(global.toString());
     }
-    for (StringLiteralDef stringLiteral : stringLiterals) {
+    for (IRStringLiteralDef stringLiteral : stringLiterals) {
       sb.append(stringLiteral.toString());
     }
-    for (IRFunction function : functions.values()) {
+    for (IRFuncDef function : functions.values()) {
       sb.append(function.toString());
     }
     return sb.toString();

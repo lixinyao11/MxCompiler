@@ -1,19 +1,30 @@
 package ir.inst;
 
+import ir.IRBlock;
+import ir.IRVisitor;
 import ir.util.entity.*;
 
-public class Binary extends IRInst {
+public class IRBinaryInst extends IRInst {
   public LocalVar result = null;
   public String op = null;
-  public IREntity rhs1 = null, rhs2 = null; // lhs, rhs1, rhs2 must be the same type
+  public IREntity rhs1 = null, rhs2 = null; // LocalVar(virtualReg) or Literal
+  // lhs, rhs1, rhs2 must be the same type
+  // 不可能是ptr type
 
-  public Binary(LocalVar result, String op, IREntity rhs1, IREntity rhs2) {
+  public IRBinaryInst(IRBlock parent, LocalVar result, String op, IREntity rhs1, IREntity rhs2) {
+    super(parent);
     if (!result.getType().equals(rhs1.getType()) || !result.getType().equals(rhs2.getType()) || !rhs1.getType().equals(rhs2.getType()))
       throw new RuntimeException("Binary: type not match");
     this.result = result;
     this.rhs1 = rhs1;
     this.rhs2 = rhs2;
-    switch (op) {
+    if (op.equals("&&")) op = "&";
+    if (op.equals("||")) op = "|";
+    this.op = op;
+  }
+
+  public String toString() {
+    String tmp = switch (op) {
       case "+" -> this.op = "add";
       case "-" -> this.op = "sub";
       case "*" -> this.op = "mul";
@@ -24,13 +35,13 @@ public class Binary extends IRInst {
       case "&" -> this.op = "and";
       case "|" -> this.op = "or";
       case "^" -> this.op = "xor";
-      case "&&" -> this.op = "and";
-      case "||" -> this.op = "or";
       default -> throw new RuntimeException("Binary: unknown op");
-    }
+    };
+    return result.toString() + " = " + tmp + " " + result.getType().toString() + " " + rhs1.toString() + ", " + rhs2.toString();
   }
 
-  public String toString() {
-    return result.toString() + " = " + op + " " + result.getType().toString() + " " + rhs1.toString() + ", " + rhs2.toString();
+  @Override
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }

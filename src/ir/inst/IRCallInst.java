@@ -1,29 +1,34 @@
 package ir.inst;
 
+import ir.IRBlock;
+import ir.IRVisitor;
 import ir.util.entity.IREntity;
 import ir.util.entity.LocalVar;
 
 import java.util.ArrayList;
 
-public class Call extends IRInst {
+public class IRCallInst extends IRInst {
   public LocalVar result = null; // result and retType
   public String funcName = null;
   public ArrayList<IREntity> args = null; // may be literal, var, or reg
 
-  public Call(LocalVar result, String funcName) {
+  public IRCallInst(IRBlock parent, LocalVar result, String funcName) {
+    super(parent);
     this.result = result;
     this.funcName = funcName;
     this.args = new ArrayList<>();
   }
 
-  public Call(LocalVar result, String funcName, IREntity arg1) {
+  public IRCallInst(IRBlock parent, LocalVar result, String funcName, IREntity arg1) {
+    super(parent);
     this.result = result;
     this.funcName = funcName;
     this.args = new ArrayList<>();
     this.args.add(arg1);
   }
 
-  public Call(LocalVar result, String funcName, IREntity arg1, IREntity arg2) {
+  public IRCallInst(IRBlock parent, LocalVar result, String funcName, IREntity arg1, IREntity arg2) {
+    super(parent);
     this.result = result;
     this.funcName = funcName;
     this.args = new ArrayList<>();
@@ -43,5 +48,10 @@ public class Call extends IRInst {
     }
     tmp.append(")");
     return tmp.toString();
+  }
+
+  @Override
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }

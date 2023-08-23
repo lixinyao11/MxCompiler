@@ -1,3 +1,5 @@
+import asm.ASMProgram;
+import backend.ASMBuilder;
 import frontend.*;
 import parser.MxLexer;
 import parser.MxParser;
@@ -35,5 +37,8 @@ public class Main {
     IRProgram irProgram = new IRProgram();
     new IRBuilder(irProgram, globalScope).visit(ast);
     System.out.write(irProgram.toString().getBytes());
+    ASMProgram asmProgram = new ASMProgram();
+    new ASMBuilder(asmProgram).visit(irProgram);
+    System.out.write(asmProgram.toString().getBytes());
   }
 }

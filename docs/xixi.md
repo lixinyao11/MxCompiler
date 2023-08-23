@@ -949,15 +949,96 @@ getelementptr type destptr i32 index;
 ## structure
 
 * sections
-  * data: lobalVar
+
+  * data: globalVar
+
   * rodata: stringLIiteral
+
   * insts
+
     * inst
+
     * operand
+
       * reg
-      * number
+
+      * imm(number)
+
       * label(br, call, j)
-      * global label(`%hi(a)`)
+
+      * memAddr
+
+        (*xx(sp)* or *xx(rd)*(stack))
+
+## Inst
+
+> lui rd, imm(%hi(b))
+
+##### li rd, imm
+
+##### la rd, symbol
+
+##### j label
+
+>auipc rd, imm
+>
+>jal rd, offset
+>
+>jalr rd, offset(rs1)
+
+##### call label
+
+##### ret
+
+##### branch rs1, (rs2, )label
+
+branch if:
+
+1. `rs1 ___ rs2`
+   1. `==` beq
+   2. `!=` bne
+   3. `<` (signed) blt
+   4. `>=` (signed) bge
+   5. `>` (signed) bgt
+   6. `<=` (signed) ble
+2. `rs1`
+   1. `==0` beqz
+   2. `!=0` bnez
+   3. `<=0` blez
+   4. `>=0` bgez
+   5. `<0` bltz
+   6. `>0` bgtz
+
+##### lw rd, offset(rs1)
+
+```
+e.g. lw a2, %lo(a)(a0)
+	 lw a1, 8(sp)
+```
+
+> lb, lh, lw
+
+>  lbu, lhu
+
+##### sw rs2, offset(rs1)
+
+> sb, sh, sw
+
+##### ArithImm rd, rs1, imm
+
+* addi
+* (slti, sltiu)
+* xori, ori, andi
+* slli, (srli, )srai
+
+##### Arith rd, rs1, rs2
+
+* add, sub
+* sll, (srl), sra
+* (slt, sltu)
+* xor, or, and
+
+
 
 ## visit IR
 
@@ -971,17 +1052,23 @@ getelementptr type destptr i32 index;
 
 ### IRFunction
 
+> LocalVar: 只在函数定义的参数列表里出现时不是以数字命名的，其他都是单调递增的数字
+>
+> alloca的ptr不一定是localPtr，也可能是LocalVar
+>
+> --> 合并了LocalVar和 LocalPtr
+
 需要知道：函数过程中用到了几个临时寄存器，需要作为callee保存几个寄存器，如果有函数调用，需要作为caller保存几个寄存器。
 
-以及ir中的虚拟寄存器，哪些是无意义的（可跳过这句话），哪些是不需要分配空间的（合并指令）哪些是需要分配空间的（并标号）
+以及ir中的虚拟寄存器(LocalVar)，全部需要分配空间，用一个map对每一个进行唯一标号(同时也表示其对应空间的偏移量)
 
 函数的最开始：分配栈空间，保存作为callee需要保存的寄存器
 
 返回前：恢复栈空间，恢复作为callee保存的寄存器
 
-如果一个虚拟寄存器，只在被定义时出现，后续没有用到，则无意义，这句话可以删去
+访问函数的过程中如果遇到需要临时寄存器的，也记录下来
 
-对于%1 = alloca type，
+用stackmanager类记录每个irfunction内的虚拟寄存器、用到的临时寄存器、需要保存的caller、callee寄存器对应的标号。每进入一个函数都新开一个stackmanager
 
 #### 需要的栈空间
 
@@ -1015,5 +1102,10 @@ call foo
 
 
 
-# Mark Everyday
+# Mark
 
+1. Branch类里那么多指令是否不必要？用不到？
+2. 乘除法无立即数版本，必须手动li
+3. 每一个ret语句前都需要mv sp，restore registers
+4. 需要保存的寄存器只有ra，临时寄存器不用存（不会在call语句的前后持续用到寄存器）
+5. 在ir里算出每个函数需要的栈空间

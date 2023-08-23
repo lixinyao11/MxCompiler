@@ -1,12 +1,13 @@
-package ir;
+package ir.module;
 
 import ir.util.entity.GlobalPtr;
+import ir.*;
 
-public class StringLiteralDef {
-  GlobalPtr ptr = null; // string.0, string.1...
-  String value = null;
+public class IRStringLiteralDef extends IRModule {
+  public GlobalPtr ptr = null; // string.0, string.1...
+  public String value = null;
 
-  public StringLiteralDef(GlobalPtr ptr, String value) {
+  public IRStringLiteralDef(GlobalPtr ptr, String value) {
     this.ptr = ptr;
     this.value = value;
   }
@@ -24,8 +25,12 @@ public class StringLiteralDef {
     }
     return ret.append("\\00").toString();
   }
-
+  @Override
   public String toString() {
     return ptr.toString() + " = constant [" + (value.length() + 1) + " x i8] c\"" + printStr() + "\"\n";
+  }
+  @Override
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }

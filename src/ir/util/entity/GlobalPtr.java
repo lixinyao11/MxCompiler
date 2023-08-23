@@ -3,7 +3,7 @@ package ir.util.entity;
 import ir.util.IRType;
 
 public class GlobalPtr extends IRVariable {
-  String name = null;
+  public String name = null;
 
   public GlobalPtr(String name) {
     this.name = name;

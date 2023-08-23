@@ -1,27 +1,33 @@
-package ir;
+package ir.module;
 
+import asm.operand.Register;
+import backend.FuncManager;
+import ir.*;
 import ir.util.entity.LocalVar;
 import ir.util.IRType;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class IRFunction {
+public class IRFuncDef extends IRModule {
   public IRType returnType = null;
   public String name = null; // ! name with "A::"A, but without "@"
   public ArrayList<LocalVar> paras = null; // ! string: name without "%"
   public ArrayList<IRBlock> body = null;
   public HashMap<String, Integer> idCnt = null;
   public int varCnt = 0, ifCnt = 0, forCnt = 0, whileCnt = 0, condCnt = 0;
+  public FuncManager manager = null;
+  public int stackSize = 0; // 不算varCnt，只是额外的localVar（包括LocalPtr和“this.1"等）
 
-  public IRFunction(IRType returnType, String name) {
+  public IRFuncDef(IRType returnType, String name) {
     this.returnType = returnType;
     this.name = name;
     this.paras = new ArrayList<>();
     this.body = new ArrayList<>();
     this.idCnt = new HashMap<>();
     body.add(new IRBlock("entry", this));
+    this.manager = new FuncManager();
   }
-
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("define ").append(returnType.toString()).append(" @").append(name).append("(");
@@ -41,6 +47,11 @@ public class IRFunction {
     IRBlock block = new IRBlock(name, this);
     body.add(block);
     return block;
+  }
+
+  @Override
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 
 }

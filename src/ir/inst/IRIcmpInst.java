@@ -1,14 +1,19 @@
 package ir.inst;
 
+import ir.IRBlock;
+import ir.IRVisitor;
 import ir.util.entity.*;
 import ir.util.IRType;
 
-public class Icmp extends IRInst {
+public class IRIcmpInst extends IRInst {
   public LocalVar result = null; // must be i1
   public String op = null;
-  public IREntity rhs1 = null, rhs2 = null; // rhs1, rhs2 must be the same type
+  public IREntity rhs1 = null, rhs2 = null;
+  // rhs1, rhs2 must be the same type
+  // can be globalptr or literal or locaLVar
 
-  public Icmp(LocalVar result, String op, IREntity rhs1, IREntity rhs2) {
+  public IRIcmpInst(IRBlock parent, LocalVar result, String op, IREntity rhs1, IREntity rhs2) {
+    super(parent);
     if (!result.getType().equals(new IRType("i1")) || !rhs1.getType().equals(rhs2.getType()))
       throw new RuntimeException("Icmp: type not match");
     this.result = result;
@@ -27,5 +32,10 @@ public class Icmp extends IRInst {
 
   public String toString() {
     return result.toString() + " = icmp " + op + " " + rhs1.getType().toString() + " " + rhs1.toString() + ", " + rhs2.toString();
+  }
+
+  @Override
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }

@@ -2,13 +2,14 @@ package ir;
 
 import java.util.ArrayList;
 import ir.inst.*;
+import ir.module.IRFuncDef;
 
 public class IRBlock {
-  public IRFunction parent = null;
+  public IRFuncDef parent = null;
   public String label = null;
   public ArrayList<IRInst> instructions = null;
 
-  public IRBlock(String label, IRFunction parent) {
+  public IRBlock(String label, IRFuncDef parent) {
     this.parent = parent;
     this.label = label;
     this.instructions = new ArrayList<>();
@@ -28,5 +29,9 @@ public class IRBlock {
   }
   public void addInst(int index, IRInst inst) {
     instructions.add(index, inst);
+  }
+
+  public void accept(IRVisitor visitor) {
+    visitor.visit(this);
   }
 }
