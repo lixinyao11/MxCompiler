@@ -31,8 +31,8 @@ public class IRBuilder implements ASTVisitor {
 
   private int getSize(String type) {
     if (type.equals("int")) return 4;
-    if (type.equals("ptr")) return 8;
-    if (type.equals("bool")) return 1;
+    if (type.equals("ptr")) return 4;
+    if (type.equals("bool")) return 4;
     var tmp = globalScope.getClassDecl(type);
     if (tmp == null || tmp.getSize() == 0) throw new RuntimeException("IRBuilder: unknown type");
     return tmp.getSize();
@@ -344,6 +344,7 @@ public class IRBuilder implements ASTVisitor {
     }
     if (node.isStringConst) {
       GlobalPtr ptr = new GlobalPtr("string." + irProgram.stringLiteralCnt++);
+
       StringBuilder tmp = new StringBuilder();
       for (int i = 0; i < node.identifier.length(); ++i) {
         char c = node.identifier.charAt(i);
@@ -359,7 +360,7 @@ public class IRBuilder implements ASTVisitor {
           tmp.append(c);
         }
       }
-      irProgram.stringLiterals.add(new IRStringLiteralDef(ptr, tmp.toString()));
+      irProgram.stringLiterals.add(new IRStringLiteralDef(ptr, tmp.toString(), node.identifier));
       lastExpr = new ExprVar(ptr, null, null);
     } else {
       var type = transType(node.type);

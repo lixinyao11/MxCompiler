@@ -25,17 +25,17 @@ public class IRBinaryInst extends IRInst {
 
   public String toString() {
     String tmp = switch (op) {
-      case "+" -> this.op = "add";
-      case "-" -> this.op = "sub";
-      case "*" -> this.op = "mul";
-      case "/" -> this.op = "sdiv";
-      case "%" -> this.op = "srem";
-      case "<<" -> this.op = "shl";
-      case ">>" -> this.op = "ashr";
-      case "&" -> this.op = "and";
-      case "|" -> this.op = "or";
-      case "^" -> this.op = "xor";
-      default -> throw new RuntimeException("Binary: unknown op");
+      case "+" -> "add";
+      case "-" -> "sub";
+      case "*" -> "mul";
+      case "/" -> "sdiv";
+      case "%" -> "srem";
+      case "<<" -> "shl";
+      case ">>" -> "ashr";
+      case "&" -> "and";
+      case "|" -> "or";
+      case "^" -> "xor";
+      default -> throw new RuntimeException("Binary: unknown op:" + op);
     };
     return result.toString() + " = " + tmp + " " + result.getType().toString() + " " + rhs1.toString() + ", " + rhs2.toString();
   }

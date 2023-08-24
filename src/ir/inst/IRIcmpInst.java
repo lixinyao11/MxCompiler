@@ -19,19 +19,20 @@ public class IRIcmpInst extends IRInst {
     this.result = result;
     this.rhs1 = rhs1;
     this.rhs2 = rhs2;
-    switch (op) {
-      case ">" -> this.op = "sgt";
-      case ">=" -> this.op = "sge";
-      case "<" -> this.op = "slt";
-      case "<=" -> this.op = "sle";
-      case "==" -> this.op = "eq";
-      case "!=" -> this.op = "ne";
-      default -> throw new RuntimeException("Icmp: unknown op");
-    }
+    this.op = op;
   }
 
   public String toString() {
-    return result.toString() + " = icmp " + op + " " + rhs1.getType().toString() + " " + rhs1.toString() + ", " + rhs2.toString();
+    String tmp = switch (op) {
+      case ">" -> "sgt";
+      case ">=" -> "sge";
+      case "<" -> "slt";
+      case "<=" -> "sle";
+      case "==" -> "eq";
+      case "!=" -> "ne";
+      default -> throw new RuntimeException("Icmp: unknown op");
+    };
+    return result.toString() + " = icmp " + tmp + " " + rhs1.getType().toString() + " " + rhs1.toString() + ", " + rhs2.toString();
   }
 
   @Override

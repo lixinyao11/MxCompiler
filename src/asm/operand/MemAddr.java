@@ -1,8 +1,8 @@
 package asm.operand;
 
 public class MemAddr {
-  Immediate offset;
-  Register base;
+  public Immediate offset;
+  public Register base;
 
   public MemAddr(Immediate offset, Register base) {
     this.offset = offset;

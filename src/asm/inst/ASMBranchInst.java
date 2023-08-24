@@ -25,7 +25,7 @@ public class ASMBranchInst extends ASMInst {
       case ">" -> "bgt";
       case "<=" -> "ble";
       case ">=" -> "bge";
-      default -> null;
+      default -> throw new RuntimeException("ASMBranchInst: unknown op: " + op);
     };
     return String.format("%-8s", (rs2 == null) ? tmp + "z" : tmp) + " " + rs1 + ", " + ((rs2 == null) ? "" : (rs2 + ", ")) + dst;
   }

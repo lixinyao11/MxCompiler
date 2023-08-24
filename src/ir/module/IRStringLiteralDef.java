@@ -5,11 +5,12 @@ import ir.*;
 
 public class IRStringLiteralDef extends IRModule {
   public GlobalPtr ptr = null; // string.0, string.1...
-  public String value = null;
+  public String value = null, orgValue = null;
 
-  public IRStringLiteralDef(GlobalPtr ptr, String value) {
+  public IRStringLiteralDef(GlobalPtr ptr, String value, String orgValue) {
     this.ptr = ptr;
     this.value = value;
+    this.orgValue = orgValue;
   }
 
   public String printStr() {

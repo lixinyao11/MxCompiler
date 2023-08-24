@@ -4,6 +4,7 @@ import ir.util.IRType;
 
 public class IRLiteral extends IREntity {
   String value = null; // "1" / "true"->"1" / "null" / "aa"
+  // ! 没有"true"只有”1“
   IRType type = null;
 
   public IRLiteral(String value, IRType type) {
@@ -22,8 +23,7 @@ public class IRLiteral extends IREntity {
   }
 
   public int getIntValue() {
-    if (type.isInt && type.bit_width == 32) return Integer.parseInt(value);
-    else if (type.isInt && type.bit_width == 1) return value.equals("true") ? 1 : 0;
+    if (type.isInt) return Integer.parseInt(value);
     else if (type.isPtr && value.equals("null")) return 0;
     else throw new RuntimeException("IRLiteral: getIntValue: not an int");
   }

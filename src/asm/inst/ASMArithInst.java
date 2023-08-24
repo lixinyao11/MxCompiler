@@ -28,7 +28,7 @@ public class ASMArithInst extends ASMInst {
       case "^" -> "xor";
       case "|" -> "or";
       case "&" -> "and";
-      default -> null;
+      default -> throw new RuntimeException("ASMArithInst: unknown op: " + op);
     };
     return String.format("%-8s", tmp) + rd + ", " + rs1 + ", " + rs2;
   }
