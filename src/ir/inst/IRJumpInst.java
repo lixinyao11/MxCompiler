@@ -4,15 +4,15 @@ import ir.IRBlock;
 import ir.IRVisitor;
 
 public class IRJumpInst extends IRInst {
-  public String destLabel = null;
+  public IRBlock destBlock = null;
 
-  public IRJumpInst(IRBlock parent, String destLabel) {
+  public IRJumpInst(IRBlock parent, IRBlock destBlock) {
     super(parent);
-    this.destLabel = destLabel;
+    this.destBlock = destBlock;
   }
 
   public String toString() {
-    return "br label %" + destLabel;
+    return "br label %" + destBlock.label;
   }
 
   @Override

@@ -16,7 +16,6 @@ public class IRFuncDef extends IRModule {
   public HashMap<String, Integer> idCnt = null;
   public int varCnt = 0, ifCnt = 0, forCnt = 0, whileCnt = 0, condCnt = 0;
   public FuncManager manager = null;
-  public int stackSize = 0; // 不算varCnt，只是额外的localVar（包括LocalPtr和“this.1"等）
 
   public IRFuncDef(IRType returnType, String name) {
     this.returnType = returnType;
@@ -45,6 +44,11 @@ public class IRFuncDef extends IRModule {
 
   public IRBlock addBlock(String name) {
     IRBlock block = new IRBlock(name, this);
+    body.add(block);
+    return block;
+  }
+
+  public IRBlock addBlock(IRBlock block) {
     body.add(block);
     return block;
   }

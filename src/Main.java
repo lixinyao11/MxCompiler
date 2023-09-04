@@ -1,6 +1,7 @@
 import asm.ASMProgram;
 import backend.ASMBuilder;
 import frontend.*;
+import middleend.IRBuilder;
 import parser.MxLexer;
 import parser.MxParser;
 import util.scope.*;
@@ -36,9 +37,9 @@ public class Main {
     // AST -> LLVM IR
     IRProgram irProgram = new IRProgram();
     new IRBuilder(irProgram, globalScope).visit(ast);
-//    System.out.write(irProgram.toString().getBytes());
-    ASMProgram asmProgram = new ASMProgram();
-    new ASMBuilder(asmProgram).visit(irProgram);
-    System.out.write(asmProgram.toString().getBytes());
+    System.out.write(irProgram.toString().getBytes());
+//    ASMProgram asmProgram = new ASMProgram();
+//    new ASMBuilder(asmProgram).visit(irProgram);
+//    System.out.write(asmProgram.toString().getBytes());
   }
 }

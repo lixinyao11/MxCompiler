@@ -1033,10 +1033,17 @@ e.g. lw a2, %lo(a)(a0)
 
 ##### Arith rd, rs1, rs2
 
-* add, sub
+* add, sub， mul, div, rem
 * sll, (srl), sra
 * (slt, sltu)
 * xor, or, and
+
+##### set rd, rs
+
+* `== 0` seqz
+* `!= 0 ` snez
+* `< 0` sltz
+* `> 0` sgtz
 
 
 
@@ -1084,28 +1091,121 @@ e.g. lw a2, %lo(a)(a0)
 
 `addi sp, sp, 64`
 
-### 准备参数
+准备参数
 
 入参1~入参7放在a0-a7寄存器，多余部分放入栈（sp指向第一个放不下的参数）
 
-### 保存caller寄存器的值
+保存caller寄存器的值
 
-### 调用函数
+调用函数
 
 call foo
 
-### 使用寄存器前：保存callee寄存器的值
+使用寄存器前：保存callee寄存器的值
 
-### 返回：恢复callee寄存器，返回a0
+返回：恢复callee寄存器，返回a0
 
 
+
+block名字：entry：函数名
+
+​					其他：函数名_block name
+
+# Optimize
+
+## BuildCFG
+
+在每个block里保存前驱、后继(set, **不允许重复**)
+
+* 每个block最多两个后继（brInst），两个前驱
+
+* 最后一条指令为
+  1. `ret`: exit block, no succ
+  2. `jump`: 1 succ
+  3. `br`: 2 succ
+* 没有前驱的block = function的第一个block = entry
+
+## Mem2Reg
+
+### reverse postorder(RPO)逆后序
+
+visit as many of a node's preds as possible before visiting the node itself
+
+**前序遍历**：dfs，先父后子，先根后子
+
+**广度优先**：bfs
+
+**后序遍历**：dfs，先子后父
+
+**逆后序**：先得到后序遍历的顺序，再反过来遍历即可（顾名思义）
+
+### Dominance
+
+#### idom
+
+利用迭代算法得出每个block的`idom`，idom只有一个，把该block的引用存放在block里
+
+初始值：IDOM(n0) = {n0}, DOM(n) = null
+
+```
+for all nodes b: idom[b]=undefined
+idon[entry]=entry
+```
+
+迭代：
+
+参见[构造Dominator Tree以及Dominator Frontier_dominatortree_电影旅行敲代码的博客-CSDN博客](https://blog.csdn.net/dashuniuniu/article/details/52224882)
+
+#### DomianceFrontier(DF)
+
+每个block中一个**set**存它所有的df
+
+参见[构造Dominator Tree以及Dominator Frontier_dominatortree_电影旅行敲代码的博客-CSDN博客](https://blog.csdn.net/dashuniuniu/article/details/52224882)
+
+### place phi functions
+
+#### find global names
+
+> those names that are live across multiple blocks
+
+--> names that are defined in one block, and used in another block
+
+（不一定是alloca出来的）
+
+对每一个function，存一个globals set保存这个函数里所有global name
+
+对其中每一个global name（or每一个被alloca出来的name？），存一个set保存所有包含了它的def(就是store语句)的block，作为phi-insertion的初始列表
+
+#### insert phi functions
+
+实现效果：跳过所有alloca，store和load也不动
+
+```
+%x = alloca i32
+%1 = load %x, i32
+```
+
+只在需要的位置插入 
+
+`%x = phi i32 [%x, %pred1.label], [%x, %pred2.then]` 
+
+```
+for each name x in GlobalName {
+	WorkList = Blocks(x)
+	for each block b in WorkList {
+		for each block d in DF(b) {
+			if d has no phi for x {
+				insert a phi x = phi(x, x), blocks: two preds
+				WorkList = workList and {d}
+			}
+		}
+	}
+}
+```
+
+### renaming variables
 
 
 
 # Mark
 
-1. Branch类里那么多指令是否不必要？用不到？
-2. 乘除法无立即数版本，必须手动li
-3. 每一个ret语句前都需要mv sp，restore registers
-4. 需要保存的寄存器只有ra，临时寄存器不用存（不会在call语句的前后持续用到寄存器）
-5. 在ir里算出每个函数需要的栈空间

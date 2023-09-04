@@ -111,10 +111,9 @@ public class ASMBuilder implements IRVisitor {
   }
   public void visit(IRBrInst inst) {
     currentBlock.addInst(new ASMComment(currentBlock, inst.toString()));
-    var addr = inst.parent.parent.manager.getAddr(inst.cond.getName());
-    var reg = new Register("t0");
-    currentBlock.addInst(new ASMLwInst(currentBlock, reg, addr));
-    currentBlock.addInst(new ASMBranchInst(currentBlock, "==", reg, null, new Label(inst.parent.parent.name + "_" + inst.elseLabel)));
+    Register reg = new Register("t0");
+    loadIREntity(inst.cond, reg, inst.parent.parent.manager);
+    currentBlock.addInst(new ASMBranchInst(currentBlock, "==", reg, null, new Label(inst.parent.parent.name + "_" + inst.elseBlock.label)));
   }
   public void visit(IRCallInst inst) {
     currentBlock.addInst(new ASMComment(currentBlock, inst.toString()));
@@ -203,7 +202,7 @@ public class ASMBuilder implements IRVisitor {
   }
   public void visit(IRJumpInst inst) {
     currentBlock.addInst(new ASMComment(currentBlock, inst.toString()));
-    currentBlock.addInst(new ASMJInst(currentBlock, inst.parent.parent.name + "_" + inst.destLabel));
+    currentBlock.addInst(new ASMJInst(currentBlock, inst.parent.parent.name + "_" + inst.destBlock.label));
   }
   public void visit(IRLoadInst inst) {
     currentBlock.addInst(new ASMComment(currentBlock, inst.toString()));

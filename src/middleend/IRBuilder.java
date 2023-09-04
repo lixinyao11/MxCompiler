@@ -1,4 +1,4 @@
-package frontend;
+package middleend;
 
 import ast.*;
 import ast.expr.*;
@@ -140,7 +140,6 @@ public class IRBuilder implements ASTVisitor {
         currentScope.addVar(pair.first, no);
         LocalVar ptr = new LocalVar(new IRType("ptr"), pair.first + "." + no);
         currentBlock.addInst(new IRAllocaInst(currentBlock, ptr, varType));
-        currentBlock.parent.stackSize += 4;
         if (pair.second != null) { // initial value
           pair.second.accept(this);
           currentBlock.addInst(new IRStoreInst(currentBlock, lastExpr.value, ptr));
@@ -166,7 +165,6 @@ public class IRBuilder implements ASTVisitor {
       var ptr = new LocalVar(new IRType("ptr"), para.getName() + "." + no);
       // add: %a.1 = alloca i32
       currentBlock.addInst(new IRAllocaInst(currentBlock, ptr, para.getType()));
-      currentBlock.parent.stackSize += 4;
       // add: store i32 %a, ptr %a.1
       currentBlock.addInst(new IRStoreInst(currentBlock, para, ptr));
     }
@@ -183,7 +181,6 @@ public class IRBuilder implements ASTVisitor {
     func.idCnt.put("this", 1);
     var ptr = new LocalVar(new IRType("ptr"), "this.1");
     currentBlock.addInst(new IRAllocaInst(currentBlock, ptr, new IRType("ptr")));
-    currentBlock.parent.stackSize += 4;
     currentBlock.addInst(new IRStoreInst(currentBlock, new LocalVar(new IRType("ptr"), "this"), ptr));
 
     for (var stmt : node.stmt_List) {
@@ -205,88 +202,91 @@ public class IRBuilder implements ASTVisitor {
     node.cond.accept(this);
 
     int no = currentBlock.parent.ifCnt++;
-    if (node.elseStmt != null)
-      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, "if.then." + no, "if.else." + no));
-    else
-      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, "if.then." + no, "if.end." + no));
+    IRBlock then = new IRBlock("if.then." + no, currentBlock.parent);
+    IRBlock else_ = new IRBlock("if.else." + no, currentBlock.parent);
+    IRBlock end = new IRBlock("if.end." + no, currentBlock.parent);
 
-    currentBlock = currentBlock.parent.addBlock("if.then." + no);
+    if (node.elseStmt != null)
+      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, then, else_));
+    else
+      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, then, end));
+
+    currentBlock = currentBlock.parent.addBlock(then);
     currentScope = new IRScope(currentScope);
     node.thenStmt.accept(this);
-    currentBlock.addInst(new IRJumpInst(currentBlock, "if.end." + no));
+    currentBlock.addInst(new IRJumpInst(currentBlock, end));
     currentScope = currentScope.parent;
 
     if (node.elseStmt != null) {
-      currentBlock = currentBlock.parent.addBlock("if.else." + no);
+      currentBlock = currentBlock.parent.addBlock(else_);
       currentScope = new IRScope(currentScope);
       node.elseStmt.accept(this);
-      currentBlock.addInst(new IRJumpInst(currentBlock, "if.end." + no));
+      currentBlock.addInst(new IRJumpInst(currentBlock, end));
       currentScope = currentScope.parent;
     }
 
-    currentBlock = currentBlock.parent.addBlock("if.end." + no);
+    currentBlock = currentBlock.parent.addBlock(end);
   }
   public void visit(WhileStmtNode node) {
     int no = currentBlock.parent.whileCnt++;
-    currentBlock.addInst(new IRJumpInst(currentBlock, "while.cond." + no));
-    currentBlock = currentBlock.parent.addBlock("while.cond." + no);
-    node.cond.accept(this);
-    currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, "while.body." + no, "while.end." + no));
+    IRBlock cond = new IRBlock("while.cond." + no, currentBlock.parent);
+    IRBlock end = new IRBlock("while.end." + no, currentBlock.parent);
+    IRBlock body = new IRBlock("while.body." + no, currentBlock.parent);
 
-    currentBlock = currentBlock.parent.addBlock("while.body." + no);
-    currentScope = new IRScope(currentScope, 2, no);
+    currentBlock.addInst(new IRJumpInst(currentBlock, cond));
+    currentBlock = currentBlock.parent.addBlock(cond);
+    node.cond.accept(this);
+    currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, body, end));
+
+    currentBlock = currentBlock.parent.addBlock(body);
+    currentScope = new IRScope(currentScope, end, cond);
     node.body.accept(this);
-    currentBlock.addInst(new IRJumpInst(currentBlock, "while.cond." + no));
+    currentBlock.addInst(new IRJumpInst(currentBlock, cond));
     currentScope = currentScope.parent;
 
-    currentBlock = currentBlock.parent.addBlock("while.end." + no);
+    currentBlock = currentBlock.parent.addBlock(end);
   }
   public void visit(ForStmtNode node) {
     int no = currentBlock.parent.forCnt++;
-    currentScope = new IRScope(currentScope, 1, no);
+    IRBlock end = new IRBlock("for.end." + no, currentBlock.parent);
+    IRBlock cond = new IRBlock("for.cond." + no, currentBlock.parent);
+    IRBlock body = new IRBlock("for.body." + no, currentBlock.parent);
+    IRBlock step = new IRBlock("for.step." + no, currentBlock.parent);
+    currentScope = new IRScope(currentScope, end, step);
+
     if (node.initStmt != null)
       node.initStmt.accept(this);
-    currentBlock.addInst(new IRJumpInst(currentBlock, "for.cond." + no));
+    currentBlock.addInst(new IRJumpInst(currentBlock, cond));
 
-    currentBlock = currentBlock.parent.addBlock("for.cond." + no);
+    currentBlock = currentBlock.parent.addBlock(cond);
     if (node.condExpr != null) {
       node.condExpr.accept(this);
-      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, "for.body." + no, "for.end." + no));
+      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, body, end));
     }
     else {
-      currentBlock.addInst(new IRJumpInst(currentBlock, "for.body." + no));
+      currentBlock.addInst(new IRJumpInst(currentBlock, body));
     }
 
-    currentBlock = currentBlock.parent.addBlock("for.body." + no);
+    currentBlock = currentBlock.parent.addBlock(body);
     if (node.body != null)
       node.body.accept(this);
-    currentBlock.addInst(new IRJumpInst(currentBlock, "for.step." + no));
+    currentBlock.addInst(new IRJumpInst(currentBlock, step));
 
-    currentBlock = currentBlock.parent.addBlock("for.step." + no);
+    currentBlock = currentBlock.parent.addBlock(step);
     if (node.stepExpr != null)
       node.stepExpr.accept(this);
-    currentBlock.addInst(new IRJumpInst(currentBlock, "for.cond." + no));
+    currentBlock.addInst(new IRJumpInst(currentBlock, cond));
 
     currentScope = currentScope.parent;
-    currentBlock = currentBlock.parent.addBlock("for.end." + no);
+    currentBlock = currentBlock.parent.addBlock(end);
   }
   public void visit(ContinueStmtNode node) {
-    if (currentScope.loopType == 0) throw new RuntimeException("continue not in loop");
-    if (currentScope.loopType == 1) {
-      currentBlock.addInst(new IRJumpInst(currentBlock, "for.step." + currentScope.loopNo));
-    }
-    else {
-      currentBlock.addInst(new IRJumpInst(currentBlock, "while.cond." + currentScope.loopNo));
-    }
+    if (currentScope.loopNext == null) throw new RuntimeException("continue not in loop");
+    currentBlock.addInst(new IRJumpInst(currentBlock, currentScope.loopNext));
   }
   public void visit(BreakStmtNode node) {
-    if (currentScope.loopType == 0) throw new RuntimeException("break not in loop");
-    if (currentScope.loopType == 1) {
-      currentBlock.addInst(new IRJumpInst(currentBlock, "for.end." + currentScope.loopNo));
-    }
-    else {
-      currentBlock.addInst(new IRJumpInst(currentBlock, "while.end." + currentScope.loopNo));
-    }
+    if (currentScope.loopEnd == null) throw new RuntimeException("break not in loop");
+    currentBlock.addInst(new IRJumpInst(currentBlock, currentScope.loopEnd));
   }
   public void visit(ReturnStmtNode node) {
     if (node.retExpr == null) {
@@ -378,32 +378,36 @@ public class IRBuilder implements ASTVisitor {
 
     if (node.op.equals("&&") || node.op.equals("||")) {
       int no = currentBlock.parent.ifCnt++;
+      IRBlock end = new IRBlock("if.end." + no, currentBlock.parent);
+      IRBlock then = new IRBlock("if.then." + no, currentBlock.parent);
+      IRBlock else_ = new IRBlock("if.else." + no, currentBlock.parent);
+
       var ret = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
       currentBlock.addInst(new IRAllocaInst(currentBlock, ret, new IRType("i1"))); // for the result of the hole expression
       // * lhsVar可能是literal而不是LocalVar？
-      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lhsVar, "if.then." + no, "if.else." + no));
+      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lhsVar, then, else_));
 
-      currentBlock = currentBlock.parent.addBlock("if.then." + no);
+      currentBlock = currentBlock.parent.addBlock(then);
       if (node.op.equals("&&")) {
         node.rhs.accept(this);
         currentBlock.addInst(new IRStoreInst(currentBlock, lastExpr.value, ret));
-        currentBlock.addInst(new IRJumpInst(currentBlock, "if.end." + no));
+        currentBlock.addInst(new IRJumpInst(currentBlock, end));
       } else {
         currentBlock.addInst(new IRStoreInst(currentBlock, lhsVar, ret));
-        currentBlock.addInst(new IRJumpInst(currentBlock, "if.end." + no));
+        currentBlock.addInst(new IRJumpInst(currentBlock, end));
       }
 
-      currentBlock = currentBlock.parent.addBlock("if.else." + no);
+      currentBlock = currentBlock.parent.addBlock(else_);
       if (node.op.equals("&&")) {
         currentBlock.addInst(new IRStoreInst(currentBlock, lhsVar, ret));
-        currentBlock.addInst(new IRJumpInst(currentBlock, "if.end." + no));
+        currentBlock.addInst(new IRJumpInst(currentBlock, end));
       } else {
         node.rhs.accept(this);
         currentBlock.addInst(new IRStoreInst(currentBlock, lastExpr.value, ret));
-        currentBlock.addInst(new IRJumpInst(currentBlock, "if.end." + no));
+        currentBlock.addInst(new IRJumpInst(currentBlock, end));
       }
 
-      currentBlock = currentBlock.parent.addBlock("if.end." + no);
+      currentBlock = currentBlock.parent.addBlock(end);
       var ret_load = new LocalVar(new IRType("i1"), String.valueOf(currentBlock.parent.varCnt++));
       currentBlock.addInst(new IRLoadInst(currentBlock, ret_load, ret));
       lastExpr = new ExprVar(ret_load, null, null);
@@ -574,21 +578,26 @@ public class IRBuilder implements ASTVisitor {
 
     // for.init: int i = 0
     int no = currentBlock.parent.forCnt++;
+    IRBlock cond = new IRBlock("for.cond." + no, currentBlock.parent);
+    IRBlock end = new IRBlock("for.end." + no, currentBlock.parent);
+    IRBlock body = new IRBlock("for.body." + no, currentBlock.parent);
+    IRBlock step = new IRBlock("for.step." + no, currentBlock.parent);
+
     var cnt = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++)); // store i
     currentBlock.addInst(new IRAllocaInst(currentBlock, cnt, new IRType("i32")));
     currentBlock.addInst(new IRStoreInst(currentBlock, new IRLiteral("0", new IRType("i32")), cnt));
-    currentBlock.addInst(new IRJumpInst(currentBlock, "for.cond." + no));
+    currentBlock.addInst(new IRJumpInst(currentBlock, cond));
 
     // for.cond: i < size
-    currentBlock = currentBlock.parent.addBlock("for.cond." + no);
+    currentBlock = currentBlock.parent.addBlock(cond);
     var cntValue = new LocalVar(new IRType("i32"), String.valueOf(currentBlock.parent.varCnt++)); // load i
     currentBlock.addInst(new IRLoadInst(currentBlock, cntValue, cnt));
     var cmp = new LocalVar(new IRType("i1"), String.valueOf(currentBlock.parent.varCnt++));
     currentBlock.addInst(new IRIcmpInst(currentBlock, cmp, "<", cntValue, size));
-    currentBlock.addInst(new IRBrInst(currentBlock, cmp, "for.body." + no, "for.end." + no));
+    currentBlock.addInst(new IRBrInst(currentBlock, cmp, body, end));
 
     // for.body: ret[i] = NewArray(nextSize, elementSize)
-    currentBlock = currentBlock.parent.addBlock("for.body." + no);
+    currentBlock = currentBlock.parent.addBlock(body);
     if (!type.isString) {
       var nextptr = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++));
       currentBlock.addInst(new IRGetElementPtrInst(currentBlock, nextptr, "ptr", ret, cntValue));
@@ -596,17 +605,17 @@ public class IRBuilder implements ASTVisitor {
       var nxtValue = NewArray(sizes,layer + 1, type); // nxtvalue must be ptr
       currentBlock.addInst(new IRStoreInst(currentBlock, nxtValue, nextptr));
     }
-    currentBlock.addInst(new IRJumpInst(currentBlock, "for.step." + no));
+    currentBlock.addInst(new IRJumpInst(currentBlock, step));
 
     // for.step: i++
-    currentBlock = currentBlock.parent.addBlock("for.step." + no);
+    currentBlock = currentBlock.parent.addBlock(step);
     var inc = new LocalVar(new IRType("i32"), String.valueOf(currentBlock.parent.varCnt++));
     currentBlock.addInst(new IRBinaryInst(currentBlock, inc, "+", cntValue, new IRLiteral("1", new IRType("i32"))));
     currentBlock.addInst(new IRStoreInst(currentBlock, inc, cnt));
-    currentBlock.addInst(new IRJumpInst(currentBlock, "for.cond." + no));
+    currentBlock.addInst(new IRJumpInst(currentBlock, cond));
 
     // for.end
-    currentBlock = currentBlock.parent.addBlock("for.end." + no);
+    currentBlock = currentBlock.parent.addBlock(end);
     return ret;
   }
 
@@ -641,19 +650,23 @@ public class IRBuilder implements ASTVisitor {
       currentBlock.addInst(new IRAllocaInst(currentBlock, retdst, transType(node.type)));
     }
     int no = currentBlock.parent.condCnt++;
-    currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, "cond.then." + no, "cond.else." + no));
+    IRBlock then = new IRBlock("cond.then." + no, currentBlock.parent);
+    IRBlock end = new IRBlock("cond.end." + no, currentBlock.parent);
+    IRBlock else_ = new IRBlock("cond.else." + no, currentBlock.parent);
 
-    currentBlock = currentBlock.parent.addBlock("cond.then." + no);
+    currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, then, else_));
+
+    currentBlock = currentBlock.parent.addBlock(then);
     node.thenExpr.accept(this);
     if (!node.type.isVoid) currentBlock.addInst(new IRStoreInst(currentBlock, lastExpr.value, retdst));
-    currentBlock.addInst(new IRJumpInst(currentBlock, "cond.end." + no));
+    currentBlock.addInst(new IRJumpInst(currentBlock, end));
 
-    currentBlock = currentBlock.parent.addBlock("cond.else." + no);
+    currentBlock = currentBlock.parent.addBlock(else_);
     node.elseExpr.accept(this);
     if (!node.type.isVoid) currentBlock.addInst(new IRStoreInst(currentBlock, lastExpr.value, retdst));
-    currentBlock.addInst(new IRJumpInst(currentBlock, "cond.end." + no));
+    currentBlock.addInst(new IRJumpInst(currentBlock, end));
 
-    currentBlock = currentBlock.parent.addBlock("cond.end." + no);
+    currentBlock = currentBlock.parent.addBlock(end);
     if (!node.type.isVoid) {
       var ret = new LocalVar(transType(node.type), String.valueOf(currentBlock.parent.varCnt++));
       currentBlock.addInst(new IRLoadInst(currentBlock, ret, retdst));

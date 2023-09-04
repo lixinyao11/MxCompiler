@@ -1,20 +1,22 @@
 package ir.util;
 
+import ir.IRBlock;
+
 import java.util.HashMap;
 
 public class IRScope {
   public IRScope parent = null;
   HashMap<String, Integer> varNames = null;
   public String className = null; // null: not in class, else: in class
-  public int loopType = 0; // not in loop: 0, in for: 1, in while: 2
-  public int loopNo = 0;
+  public IRBlock loopEnd = null; // null: not in loop
+  public IRBlock loopNext = null; // null: not in loop, for.step, while.cond
 
   public IRScope(IRScope parent) {
     this.parent = parent;
     if (parent != null) {
       this.className = parent.className;
-      this.loopType = parent.loopType;
-      this.loopNo = parent.loopNo;
+      this.loopEnd = parent.loopEnd;
+      this.loopNext = parent.loopNext;
     }
     varNames = new HashMap<>();
   }
@@ -23,17 +25,17 @@ public class IRScope {
     this.parent = parent;
     this.className = className;
     if (parent != null) {
-      this.loopType = parent.loopType;
-      this.loopNo = parent.loopNo;
+      this.loopEnd = parent.loopEnd;
+      this.loopNext = parent.loopNext;
     }
     varNames = new HashMap<>();
   }
 
-  public IRScope(IRScope parent, int loopType, int loopNum) {
+  public IRScope(IRScope parent, IRBlock loopEnd, IRBlock loopNext) {
     this.parent = parent;
     if (parent != null) this.className = parent.className;
-    this.loopType = loopType;
-    this.loopNo = loopNum;
+    this.loopEnd = loopEnd;
+    this.loopNext = loopNext;
     varNames = new HashMap<>();
   }
 

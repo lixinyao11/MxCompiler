@@ -12,8 +12,6 @@ import java.util.HashMap;
 public class FuncManager {
   // * Integer represents the number, referring to the position in stack
   HashMap<String, Integer> virtualRegister = null;
-//  HashMap<Register, Integer> calleeRegister = null;
-//  HashMap<Register, Integer> callerRegister = null;
   HashMap<String, Register> paraRegister = null; // a0-a7
   HashMap<String, ASMInst> paraOffset = null; // paras more than 8
   public int calleeRegCnt = 0, callerRegCnt = 0; // 是个数不是下标
@@ -22,8 +20,6 @@ public class FuncManager {
 
   public FuncManager() {
     virtualRegister = new HashMap<>();
-//    calleeRegister = new HashMap<>();
-//    callerRegister = new HashMap<>();
     paraOffset = new HashMap<>();
     paraRegister = new HashMap<>();
     retInsts = new ArrayList<>();
