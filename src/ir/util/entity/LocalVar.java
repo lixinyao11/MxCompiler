@@ -3,8 +3,8 @@ package ir.util.entity;
 import ir.util.IRType;
 
 public class LocalVar extends IRVariable {
-  String name = null;
-  IRType type = null;
+  public String name = null;
+  public IRType type = null;
 
   public LocalVar(IRType type, String name) {
     this.name = name;

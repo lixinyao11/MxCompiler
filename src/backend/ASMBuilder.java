@@ -248,7 +248,7 @@ public class ASMBuilder implements IRVisitor {
       throw new RuntimeException("StoreInst: invalid src");
     }
 
-    loadIREntity(inst.pos, reg2, inst.parent.parent.manager); // reg2中是ptr中存放的地址
+    loadIREntity(inst.dest, reg2, inst.parent.parent.manager); // reg2中是ptr中存放的地址
     // 把值store进地址中
     currentBlock.addInst(new ASMSwInst(currentBlock, reg1, new MemAddr(new Immediate(0), reg2)));
     inst.parent.parent.manager.updateCalleeReg(2);
@@ -267,4 +267,6 @@ public class ASMBuilder implements IRVisitor {
       throw new RuntimeException("invalid entity");
     }
   }
+
+  public void visit(IRPhiInst inst) {}
 }

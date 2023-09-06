@@ -8,6 +8,7 @@ import java.util.ArrayList;
 
 public class DomTreeBuilder {
   IRProgram program;
+  ArrayList<IRBlock> postOrder = null;
 
   public DomTreeBuilder(IRProgram program) {
     this.program = program;
@@ -19,9 +20,10 @@ public class DomTreeBuilder {
 
   public void workOnFunc(IRFuncDef func) {
     // get post order of blocks
-    ArrayList<IRBlock> postOrder = new ArrayList<>();
+    postOrder = new ArrayList<>();
+    ArrayList<IRBlock> visited = new ArrayList<>();
     var entry = func.body.get(0);
-    postTraverse(postOrder, entry);
+    postTraverse(visited, entry);
 
     // get idom
     entry.idom = entry;
@@ -42,9 +44,11 @@ public class DomTreeBuilder {
         }
       }
     }
+    entry.idom = null;
 
-    // get domFrontier
+    // get domFrontier and domChildren
     for (var block : postOrder) {
+      if (block.idom != null) block.idom.domChildren.add(block);
       if (block.preds.size() >= 2) {
         for (var pred : block.preds) {
           var runner = pred;
@@ -72,11 +76,12 @@ public class DomTreeBuilder {
     return b1;
   }
 
-  private void postTraverse(ArrayList<IRBlock> postOrder, IRBlock block) {
-    block.succs.forEach(succ -> {
-      if (!postOrder.contains(succ))
-        postTraverse(postOrder, succ);
-    });
+  private void postTraverse(ArrayList<IRBlock> visited, IRBlock block) {
+    visited.add(block);
+    for (var succ : block.succs) {
+      if (!visited.contains(succ))
+        postTraverse(visited, succ);
+    }
     postOrder.add(block);
   }
 }

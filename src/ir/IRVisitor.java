@@ -21,4 +21,5 @@ public interface IRVisitor {
   public void visit(IRLoadInst loadInst);
   public void visit(IRRetInst retInst);
   public void visit(IRStoreInst storeInst);
+  public void visit(IRPhiInst phiInst);
 }

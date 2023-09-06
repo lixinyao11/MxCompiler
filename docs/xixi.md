@@ -1117,7 +1117,7 @@ block名字：entry：函数名
 
 在每个block里保存前驱、后继(set, **不允许重复**)
 
-* 每个block最多两个后继（brInst），两个前驱
+* 每个block最多两个后继（brInst）
 
 * 最后一条指令为
   1. `ret`: exit block, no succ
@@ -1164,30 +1164,34 @@ idon[entry]=entry
 
 ### place phi functions
 
-#### find global names
+对每一个function：
 
-> those names that are live across multiple blocks
+ArrayList<String> allocaNames
 
---> names that are defined in one block, and used in another block
+Hashmap<String, HashSet<IRBlock>> defBlocks
 
-（不一定是alloca出来的）
+HashMap<String, Stack<int>> NumStack
 
-对每一个function，存一个globals set保存这个函数里所有global name
+HashMap<String, IREntity> valueStack
 
-对其中每一个global name（or每一个被alloca出来的name？），存一个set保存所有包含了它的def(就是store语句)的block，作为phi-insertion的初始列表
+#### AllocaNames
+
+所有alloca出来的变量名存在一个list中（整个function）
+
+>  不管后续是否用到，都会插入phi，之后活跃分析后会消除不必要的def(也包括这里插入的phi)
+
+对每一个alloca出来的name，存一个set保存所有包含了它的def(store语句)的block，作为phi-insertion的初始列表
 
 #### insert phi functions
 
-实现效果：跳过所有alloca，store和load也不动
+实现效果：alloca，store和load都不动，只添加phi语句
 
 ```
 %x = alloca i32
 %1 = load %x, i32
 ```
 
-只在需要的位置插入 
-
-`%x = phi i32 [%x, %pred1.label], [%x, %pred2.then]` 
+插入`%x = phi i32 [%x, %pred1.label], [%x, %pred2.then]` 
 
 ```
 for each name x in GlobalName {
@@ -1205,7 +1209,23 @@ for each name x in GlobalName {
 
 ### renaming variables
 
+对所有的AllocaNames，存一个编号栈和值栈
 
+前序遍历支配树
+
+对每个block，先把每个phi指令的result改为%_xxx.n（n为这个allocaName的最新编号+1），并将这个localVar存入值栈。再遍历每条指令：遇到alloca指令，直接删去；遇到store指令(且store对象在allocaNames中)，在该name对应的值栈中加入这一entity，并删去指令；遇到load指令(...)，用值栈栈顶的值替换load指令的结果变量，如果值栈为空，throw exception。最后，遍历这个block**在CFG中的**所有后继block，把后继block中每条phi指令的参数中，对应本block的那个改为值栈栈顶。
+
+接着递归访问支配树上的所有孩子(需要在IRBlock里存一下支配树上的所有儿子)，访问结束后，把值栈和编号栈都恢复到访问本block之前的状态。
 
 # Mark
+
+mem2reg
+
+regallocation
+
+常量传递
+
+死代码消除
+
+global2local
 

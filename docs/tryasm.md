@@ -190,10 +190,41 @@ label(StringLiteral):
 
 ​		.asciz
 
+# 2
 
+```
+@w = global i32 0
+@string.0 = constant [4 x i8] c"YES\00"
+@string.1 = constant [3 x i8] c"NO\00"
+define i32 @main() {
+entry:
+  %_0 = load i32, ptr @w
+  %_1 = call i32 @getInt()
+  store i32 %_1, ptr @w
+  %_2 = load i32, ptr @w
+  %_3 = srem i32 %_2, 2
+  %_4 = icmp eq i32 %_3, 0
+  %_5 = alloca i1
+  br i1 %_4, label %if.then.0, label %if.else.0
+if.then.0:
+  %_6 = load i32, ptr @w
+  %_7 = icmp sgt i32 %_6, 2
+  store i1 %_7, ptr %_5
+  br label %if.end.0
+if.else.0:
+  store i1 %_4, ptr %_5
+  br label %if.end.0
+if.end.0:
+  %_8 = load i1, ptr %_5
+  br i1 %_8, label %if.then.1, label %if.else.1
+if.then.1:
+  call void @print(ptr @string.0)
+  br label %if.end.1
+if.else.1:
+  call void @print(ptr @string.1)
+  br label %if.end.1
+if.end.1:
+  ret i32 0
+}
+```
 
-# ??
-
-.bss 类section？
-
-.zero指令？
