@@ -38,7 +38,7 @@ public class Main {
     // AST -> LLVM IR
     IRProgram irProgram = new IRProgram();
     new IRBuilder(irProgram, globalScope).visit(ast);
-//    new IROptimize(irProgram).work();
+    new IROptimize(irProgram).work();
     System.out.write(irProgram.toString().getBytes());
 //    ASMProgram asmProgram = new ASMProgram();
 //    new ASMBuilder(asmProgram).visit(irProgram);

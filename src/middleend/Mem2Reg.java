@@ -37,9 +37,6 @@ public class Mem2Reg {
   }
 
   private void rename(IRBlock block) {
-    var valueSave = valueStack;
-    var numSave = numStack;
-
     block.phiInsts.forEach((key, value) -> {
       if (allocaVars.containsKey(key)) {
         int num = 0;
@@ -76,8 +73,10 @@ public class Mem2Reg {
             IRLiteral tmp0 = new IRLiteral("0", ((IRLoadInst) inst).result.type);
             if (((IRLoadInst) inst).result.type.isPtr) tmp0 = new IRLiteral("null", ((IRLoadInst) inst).result.type);
             block.instructions.set(i, new IRBinaryInst(block, ((IRLoadInst) inst).result, "+", stack.peek(), tmp0));
+          } else if (stack.peek() instanceof GlobalPtr) {
+            block.instructions.set(i, new IRGetElementPtrInst(block, ((IRLoadInst) inst).result, "i32", (GlobalPtr) stack.peek(), new IRLiteral("0", new IRType("i32"))));
           } else {
-            throw new RuntimeException("Mem2Reg: rename: valueStack.peek() is not LocalVar or IRLiteral");
+            throw new RuntimeException("Mem2Reg: rename: valueStack.peek() is not LocalVar or IRLiteral or GlobalPtr");
           }
         }
       }
@@ -101,12 +100,14 @@ public class Mem2Reg {
       });
     }
 
+    HashMap<String, Integer> valueSave = new HashMap<>();
+    for (var name : allocaVars.keySet())
+      valueSave.put(name, valueStack.get(name).size());
     for (var child : block.domChildren) {
       rename(child);
+      for (var name : allocaVars.keySet())
+        while (valueStack.get(name).size() > valueSave.get(name)) valueStack.get(name).pop();
     }
-
-    valueStack = valueSave;
-    numStack = numSave;
   }
 
   private void InsertPhi(String name, IRType type) {

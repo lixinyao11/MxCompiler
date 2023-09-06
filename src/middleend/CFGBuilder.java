@@ -26,29 +26,36 @@ public class CFGBuilder {
     func.body.forEach(block -> {
       if (block.preds.isEmpty() && !block.label.equals("entry")) {
         block.succs.forEach(succ -> succ.preds.remove(block));
-        func.body.remove(block);
       }
     });
     func.body.removeIf(block -> block.preds.isEmpty() && !block.label.equals("entry"));
   }
 
   public void workOnBlock(IRBlock block) {
-    IRInst exit = block.instructions.get(block.instructions.size() - 1);
-    if (exit instanceof IRRetInst) {
-      // is exitBlock, has no succ
-      return;
-    } else if (exit instanceof IRJumpInst) {
-      IRBlock succ = ((IRJumpInst) exit).destBlock;
-      block.succs.add(succ);
-      succ.preds.add(block);
-    } else if (exit instanceof IRBrInst) {
-      IRBlock succ = ((IRBrInst) exit).thenBlock;
-      block.succs.add(succ);
-      succ.preds.add(block);
+    // ! 每个block的最后一条指令一定是exitInst，但中间也可能有exitInst(break, continue)
+    // ! 如果中间出现了exitInst，那么后面的指令都是无效的，可以直接删去
+    for (IRInst inst : block.instructions) {
+      if (inst instanceof IRRetInst) {
+        block.instructions.removeIf(tmp -> block.instructions.indexOf(tmp) > block.instructions.indexOf(inst));
+        // is exitBlock, has no succ
+        return;
+      } else if (inst instanceof IRJumpInst) {
+        IRBlock succ = ((IRJumpInst) inst).destBlock;
+        block.succs.add(succ);
+        succ.preds.add(block);
+        block.instructions.removeIf(tmp -> block.instructions.indexOf(tmp) > block.instructions.indexOf(inst));
+        return;
+      } else if (inst instanceof IRBrInst) {
+        IRBlock succ = ((IRBrInst) inst).thenBlock;
+        block.succs.add(succ);
+        succ.preds.add(block);
 
-      succ = ((IRBrInst) exit).elseBlock;
-      block.succs.add(succ);
-      succ.preds.add(block);
+        succ = ((IRBrInst) inst).elseBlock;
+        block.succs.add(succ);
+        succ.preds.add(block);
+        block.instructions.removeIf(tmp -> block.instructions.indexOf(tmp) > block.instructions.indexOf(inst));
+        return;
+      }
     }
   }
 }
