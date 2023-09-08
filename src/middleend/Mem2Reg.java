@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Stack;
 
 public class Mem2Reg {
+  int blankBlockCnt = 0;
   IRProgram program;
   HashMap<String, IRType> allocaVars = null;
   HashMap<String, HashSet<IRBlock>> defBlocks = null;
@@ -34,6 +35,39 @@ public class Mem2Reg {
     func.body.forEach(this::collectNamesDefs);
     allocaVars.forEach(this::InsertPhi);
     rename(func.body.get(0));
+    blankBlockCnt = 0;
+    splitCriticalEdge(func.body.get(0));
+  }
+
+  private void splitCriticalEdge(IRBlock block) {
+    boolean flag = block.succs.size() > 1;
+    for (var succ : block.succs) {
+      if (flag && succ.preds.size() > 1) {
+        var tmp = new IRBlock("blank." + blankBlockCnt++, block.parent);
+        tmp.addInst(new IRJumpInst(tmp, succ));
+        block.parent.body.add(block.parent.body.indexOf(succ), tmp);
+        tmp.succs.add(succ);
+        tmp.preds.add(block);
+        block.succs.remove(succ);
+        block.succs.add(tmp);
+        succ.preds.remove(block);
+        succ.preds.add(tmp);
+        for (var phi : succ.phiInsts.values()) {
+          phi.changeBlock(block, tmp);
+        }
+        var exit = block.instructions.get(block.instructions.size() - 1);
+        if (exit instanceof IRJumpInst) {
+          ((IRJumpInst) exit).destBlock = tmp;
+        } else if (exit instanceof IRBrInst) {
+          if (((IRBrInst) exit).thenBlock == succ) ((IRBrInst) exit).thenBlock = tmp;
+          else if (((IRBrInst) exit).elseBlock == succ) ((IRBrInst) exit).elseBlock = tmp;
+          else throw new RuntimeException("Mem2Reg: splitCriticalEdge:: exit is not IRJumpInst or IRBrInst");
+        } else {
+          throw new RuntimeException("Mem2Reg: splitCriticalEdge: exit is not IRJumpInst or IRBrInst");
+        }
+      }
+      splitCriticalEdge(succ);
+    }
   }
 
   private void rename(IRBlock block) {

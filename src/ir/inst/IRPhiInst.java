@@ -35,6 +35,15 @@ public class IRPhiInst extends IRInst {
     }
   }
 
+  public void changeBlock(IRBlock oldBlock, IRBlock newBlock) {
+    for (var tmp : blocks) {
+      if (tmp == oldBlock) {
+        blocks.set(blocks.indexOf(tmp), newBlock);
+        return;
+      }
+    }
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();

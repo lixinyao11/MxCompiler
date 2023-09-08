@@ -1209,15 +1209,35 @@ for each name x in GlobalName {
 
 ### renaming variables
 
+**短路求值也会产生phi，在这里不需要处理！已经是ssa**
+
 对所有的AllocaNames，存一个编号栈和值栈
 
 前序遍历支配树
 
-对每个block，先把每个phi指令的result改为%_xxx.n（n为这个allocaName的最新编号+1），并将这个localVar存入值栈。再遍历每条指令：遇到alloca指令，直接删去；遇到store指令(且store对象在allocaNames中)，在该name对应的值栈中加入这一entity，并删去指令；遇到load指令(...)，用值栈栈顶的值替换load指令的结果变量，如果值栈为空，throw exception。最后，遍历这个block**在CFG中的**所有后继block，把后继block中每条phi指令的参数中，对应本block的那个改为值栈栈顶。
+对每个block，先把**除了短路求值生成的以外**每个phi指令的result改为%_xxx.n（n为这个allocaName的最新编号+1），并将这个localVar存入值栈。再遍历每条指令：遇到alloca指令，直接删去；遇到store指令(且store对象在allocaNames中)，在该name对应的值栈中加入这一entity，并删去指令；遇到load指令(...)，用值栈栈顶的值替换load指令的结果变量，如果值栈为空，throw exception。最后，遍历这个block**在CFG中的**所有后继block，把后继block中**除了短路求值生成的以外**每条phi指令的参数中，对应本block的那个改为值栈栈顶。
 
-接着递归访问支配树上的所有孩子(需要在IRBlock里存一下支配树上的所有儿子)，访问结束后，把值栈和编号栈都恢复到访问本block之前的状态。
+接着递归访问支配树上的所有孩子(需要在IRBlock里存一下支配树上的所有儿子)，访问结束后，把**值栈**（编号栈不改）都恢复到访问本block之前的状态。
 
-# Mark
+### 消除phi （IR->ASM)
+
+##### 大部分phi
+
+在每个对应的前驱中插入mv指令即可（在ASMBuilder visit phiInst时处理，向每个前驱block的最后加一句mv）
+
+#### critical edge
+
+在所有critical edge中间插入一个新的基本块，修改父块的br指令和子块的phi指令中对应的block
+
+之后即可正常消除phi，不会引起数据冲突
+
+#### 在middleend消除critical edge(in Mem2Reg)
+
+dfs CFG，找到所有critical edge并添加blank block，其中添加jump语句，修改前驱的exitInst和后继的phiInst
+
+
+
+# TODO
 
 mem2reg
 
@@ -1225,7 +1245,15 @@ regallocation
 
 常量传递
 
-死代码消除
+死代码消除（活跃分析后无用的def应该删去？）
 
 global2local
+
+# Mark
+
+短路求值（双目&三目）都是用phi实现的——phiInsts中有一部分不是mem2reg生成的而是短路求值直接生成的，这部分不需要rename，但同样需要消除phi
+
+没有store过就load的一定是无用的load。直接删去load
+
+phi指令中涉及到某前驱分支里没有store过的变量，该分支的值为0（其实不会用到）
 
