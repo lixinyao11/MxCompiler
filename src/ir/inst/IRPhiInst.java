@@ -10,8 +10,8 @@ import java.util.ArrayList;
 public class IRPhiInst extends IRInst {
   public LocalVar result = null;
   IRType type = null;
-  ArrayList<IREntity> values = null;
-  ArrayList<IRBlock> blocks = null;
+  public ArrayList<IREntity> values = null;
+  public ArrayList<IRBlock> blocks = null;
 
   public IRPhiInst(IRBlock parent, LocalVar result, IRType type) {
     super(parent);

@@ -1235,7 +1235,63 @@ for each name x in GlobalName {
 
 dfs CFG，找到所有critical edge并添加blank block，其中添加jump语句，修改前驱的exitInst和后继的phiInst
 
+## 指令选择
 
+先遍历完所有block，最后统一visit phi（在pred block末尾加mv）
+
+所有局部变量、常量、全局变量都要新建一个virtual reg存入指令（reg类派生出virtual和physical）
+
+需要维护一下sp，目前只放溢出的函数传参
+
+### 创建虚拟寄存器
+
+遇到literal或global：当场创建新的virtualReg（一次性使用）
+
+在一个function内对所有的localVar：创建一个map<String, VirtualReg>
+
+函数传参：超过8个后存在栈里
+
+### 物理寄存器
+
+函数返回：返回地址ra，返回值a0，函数参数a0-a7直接放入物理寄存器
+
+### 函数调用
+
+在call时，如果有溢出参数，将其推入sp的下方，第8个参数在最下面，最后一个参数在最上面，并在call之前把sp移到最下方（参数在sp上方），call完后恢复sp
+
+在进入函数时，先用新的virtualReg load出溢出的参数，再移动sp（本函数所需的栈空间，不包括溢出的参数），再保存本函数用到的tmp regs
+
+在退出函数时（每一句ret前）,恢复sp，恢复用到的regs
+
+### mark
+
+有关sp的移动和regs的保存等需要注意之后再修改
+
+某些操作如icmp需要一个中间量，则开了一个没有对应localvar的虚拟寄存器
+
+
+
+## 活跃分析
+
+得到每个基本块的livein，liveout，use，def
+$$
+in[n] = use[n] \cup (out[n] - def[n]) \\
+out[n] = \cup _{s \in suc[n]} in[s] \\
+out[exit] = \empty
+$$
+ 
+
+
+
+## 寄存器分配
+
+尽可能地将临时变量分配到寄存器中
+
+### 建冲突图
+
+无向图，节点为变量，边表示冲突
+
+推出每条指令的liveout，遍历每条指令，所有def向此时存活的其他变量（这条指令的所有def和liveout）连边
 
 # TODO
 

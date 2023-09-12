@@ -12,6 +12,7 @@ import ir.util.entity.*;
 import java.util.HashMap;
 
 import static java.lang.Math.min;
+  /*
 
 public class ASMBuilder implements IRVisitor {
   ASMProgram program = null;
@@ -121,7 +122,7 @@ public class ASMBuilder implements IRVisitor {
     var raAddr = inst.parent.parent.manager.saveCallerReg();
     currentBlock.addInst(new ASMSwInst(currentBlock, new Register("ra"), raAddr));
 
-    // 处理参数，如果有溢出参数移动sp
+    // ! 处理参数，如果有溢出参数移动sp
     for (int i = 0; i < min(inst.args.size(), 8); ++i)
       loadIREntity(inst.args.get(i), new Register("a" + i), inst.parent.parent.manager);
 
@@ -139,7 +140,7 @@ public class ASMBuilder implements IRVisitor {
 
     // call
     currentBlock.addInst(new ASMCallInst(currentBlock, new Label(inst.funcName)));
-    // 恢复sp
+    // ! 恢复sp
     if (spOffset > 0) {
       currentBlock.addInst(new ASMArithImmInst(currentBlock, "+", new Register("sp"), new Register("sp"), new Immediate(spOffset)));
     }
@@ -270,3 +271,4 @@ public class ASMBuilder implements IRVisitor {
 
   public void visit(IRPhiInst inst) {}
 }
+   */

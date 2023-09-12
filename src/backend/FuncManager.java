@@ -8,7 +8,7 @@ import asm.section.ASMBlock;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-
+/*
 public class FuncManager {
   // * Integer represents the number, referring to the position in stack
   HashMap<String, Integer> virtualRegister = null;
@@ -46,4 +46,4 @@ public class FuncManager {
   public int getStackSize() {
     return (stackCnt + calleeRegCnt) * 4;
   }
-}
+} */
