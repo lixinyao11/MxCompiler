@@ -2,7 +2,10 @@ package asm.inst;
 
 import asm.operand.Immediate;
 import asm.operand.Register;
+import asm.operand.VirtualRegister;
 import asm.section.ASMBlock;
+
+import java.util.HashSet;
 
 public class ASMArithImmInst extends ASMInst {
   Register rd = null, rs1 = null;
@@ -29,6 +32,13 @@ public class ASMArithImmInst extends ASMInst {
       default -> throw new RuntimeException("ArithImm: invalid op");
     };
     return String.format("%-8s", tmp) + rd + ", " + rs1 + ", " + imm;
+  }
+  @Override
+  public void initUseDef(HashSet<VirtualRegister> use, HashSet<VirtualRegister> def) {
+    if (rs1 instanceof VirtualRegister && !def.contains(rs1))
+      use.add((VirtualRegister) rs1);
+    if (rd instanceof VirtualRegister)
+      def.add((VirtualRegister) rd);
   }
 
 }

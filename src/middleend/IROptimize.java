@@ -10,6 +10,6 @@ public class IROptimize {
   }
   public void work() {
     new CFGBuilder(program).work();
-//    new Mem2Reg(program).work();
+    new Mem2Reg(program).work();
   }
 }

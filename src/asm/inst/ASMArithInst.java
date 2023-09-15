@@ -1,7 +1,10 @@
 package asm.inst;
 
 import asm.operand.Register;
+import asm.operand.VirtualRegister;
 import asm.section.ASMBlock;
+
+import java.util.HashSet;
 
 public class ASMArithInst extends ASMInst {
   Register rd = null, rs1 = null, rs2 = null;
@@ -31,5 +34,14 @@ public class ASMArithInst extends ASMInst {
       default -> throw new RuntimeException("ASMArithInst: unknown op: " + op);
     };
     return String.format("%-8s", tmp) + rd + ", " + rs1 + ", " + rs2;
+  }
+  @Override
+  public void initUseDef(HashSet<VirtualRegister> use, HashSet<VirtualRegister> def) {
+    if (rs1 instanceof VirtualRegister && !def.contains(rs1))
+      use.add((VirtualRegister) rs1);
+    if (rs2 instanceof VirtualRegister && !def.contains(rs2))
+      use.add((VirtualRegister) rs2);
+    if (rd instanceof VirtualRegister)
+      def.add((VirtualRegister) rd);
   }
 }

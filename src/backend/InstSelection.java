@@ -18,7 +18,7 @@ import static java.lang.Math.min;
 public class InstSelection implements IRVisitor {
   ASMProgram program;
   ASMBlock currentBlock = null;
-  HashMap<String, Register> localVars = null;
+  HashMap<String, VirtualRegister> localVars = null;
   HashMap<String, ASMBlock> blocks = null;
   ArrayList<ASMRetInst> retInsts;
   int stackSize = 0;
@@ -41,6 +41,8 @@ public class InstSelection implements IRVisitor {
   }
   public void visit(IRBlock block) {
     currentBlock = program.addBlock(block.parent.name + "_" + block.label);
+    currentBlock.irBlock = block;
+    block.asmBlock = currentBlock;
     blocks.put(block.label, currentBlock);
     for (var inst : block.instructions) {
       inst.accept(this);
@@ -54,14 +56,12 @@ public class InstSelection implements IRVisitor {
     var startBlock = currentBlock = program.addBlock(funcDef.name);
 
     for (int i = 0; i < funcDef.paras.size(); ++i) {
-      if (i < 8) {
-        localVars.put(funcDef.paras.get(i).getName(), new PhysicalRegister("a" + i));
-      } else {
-        VirtualRegister tmp = new VirtualRegister();
+      VirtualRegister tmp = new VirtualRegister();
+      if (i < 8)
+        currentBlock.addInst(new ASMMvInst(currentBlock, tmp, new PhysicalRegister("a" + i)));
+      else
         currentBlock.addInst(new ASMLwInst(currentBlock, tmp, new MemAddr(new Immediate(4 * (i - 8)), new PhysicalRegister("sp"))));
-        localVars.put(funcDef.paras.get(i).getName(), tmp);
-        // ! 从下往上放
-      }
+      localVars.put(funcDef.paras.get(i).getName(), tmp);
     }
 
     stackSize = 0;
@@ -80,7 +80,6 @@ public class InstSelection implements IRVisitor {
 //    for (int i = 0; i < funcDef.manager.calleeRegCnt; ++i) {
 //      currentBlock.addInst(new ASMSwInst(currentBlock, new Register("t" + i), new MemAddr(new Immediate((funcDef.manager.stackCnt + i) * 4), new Register("sp"))));
 //    }
-
     // 所有ret前恢复sp，恢复reg
     for (var inst : retInsts) {
       currentBlock = inst.parent;
@@ -208,7 +207,7 @@ public class InstSelection implements IRVisitor {
     }
   }
 
-  private Register getIREntity(IREntity entity) {
+  private VirtualRegister getIREntity(IREntity entity) {
     if (entity instanceof GlobalPtr) {
       var tmp = new VirtualRegister();
       currentBlock.addInst(new ASMLaInst(currentBlock, tmp, ((GlobalPtr) entity).name));

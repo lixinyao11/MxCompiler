@@ -1,9 +1,8 @@
 import asm.ASMProgram;
+import backend.*;
 import frontend.*;
-import middleend.IRBuilder;
-import middleend.IROptimize;
-import parser.MxLexer;
-import parser.MxParser;
+import middleend.*;
+import parser.*;
 import util.scope.*;
 import util.*;
 import ir.*;
@@ -39,8 +38,9 @@ public class Main {
     new IRBuilder(irProgram, globalScope).visit(ast);
     new IROptimize(irProgram).work();
     System.out.write(irProgram.toString().getBytes());
-//    ASMProgram asmProgram = new ASMProgram();
-//    new ASMBuilder(asmProgram).visit(irProgram);
-//    System.out.write(asmProgram.toString().getBytes());
+    ASMProgram asmProgram = new ASMProgram();
+    new InstSelection(asmProgram).visit(irProgram);
+    new LiveAnalysis(asmProgram).work();
+    System.out.write(asmProgram.toString().getBytes());
   }
 }

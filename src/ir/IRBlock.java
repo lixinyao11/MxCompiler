@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import asm.section.ASMBlock;
 import ir.inst.*;
 import ir.module.IRFuncDef;
 
@@ -16,6 +17,7 @@ public class IRBlock {
   public ArrayList<IRBlock> domChildren = null; // * for DomTree
   public HashSet<IRBlock> domFrontier = null; // * for DomTree
   public HashMap<String, IRPhiInst> phiInsts = null; // * for Mem2Reg
+  public ASMBlock asmBlock = null; // * for InstSelection
 //  public HashMap<String, LocalVar> defs = null, uses = null;
 
   public IRBlock(String label, IRFuncDef parent) {
