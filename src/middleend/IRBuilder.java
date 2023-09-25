@@ -23,6 +23,7 @@ public class IRBuilder implements ASTVisitor {
   IRScope currentScope = null;
   GlobalScope globalScope = null;
   ExprVar lastExpr = null;
+  int loopDepth = 0;
 
   public IRBuilder(IRProgram irProgram, GlobalScope globalScope) {
     this.irProgram = irProgram;
@@ -73,7 +74,6 @@ public class IRBuilder implements ASTVisitor {
     for (var stmt : node.stmt_List) {
       stmt.accept(this);
     }
-
 
     currentScope = currentScope.parent;
     currentBlock = null;
@@ -202,9 +202,9 @@ public class IRBuilder implements ASTVisitor {
     node.cond.accept(this);
 
     int no = currentBlock.parent.ifCnt++;
-    IRBlock then = new IRBlock("if.then." + no, currentBlock.parent);
-    IRBlock else_ = new IRBlock("if.else." + no, currentBlock.parent);
-    IRBlock end = new IRBlock("if.end." + no, currentBlock.parent);
+    IRBlock then = new IRBlock("if.then." + no, currentBlock.parent, loopDepth);
+    IRBlock else_ = new IRBlock("if.else." + no, currentBlock.parent, loopDepth);
+    IRBlock end = new IRBlock("if.end." + no, currentBlock.parent, loopDepth);
 
     if (node.elseStmt != null)
       currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, then, else_));
@@ -229,9 +229,10 @@ public class IRBuilder implements ASTVisitor {
   }
   public void visit(WhileStmtNode node) {
     int no = currentBlock.parent.whileCnt++;
-    IRBlock cond = new IRBlock("while.cond." + no, currentBlock.parent);
-    IRBlock end = new IRBlock("while.end." + no, currentBlock.parent);
-    IRBlock body = new IRBlock("while.body." + no, currentBlock.parent);
+    loopDepth++;
+    IRBlock cond = new IRBlock("while.cond." + no, currentBlock.parent, loopDepth);
+    IRBlock end = new IRBlock("while.end." + no, currentBlock.parent, loopDepth - 1);
+    IRBlock body = new IRBlock("while.body." + no, currentBlock.parent, loopDepth);
 
     currentBlock.addInst(new IRJumpInst(currentBlock, cond));
     currentBlock = currentBlock.parent.addBlock(cond);
@@ -245,13 +246,15 @@ public class IRBuilder implements ASTVisitor {
     currentScope = currentScope.parent;
 
     currentBlock = currentBlock.parent.addBlock(end);
+    loopDepth--;
   }
   public void visit(ForStmtNode node) {
     int no = currentBlock.parent.forCnt++;
-    IRBlock end = new IRBlock("for.end." + no, currentBlock.parent);
-    IRBlock cond = new IRBlock("for.cond." + no, currentBlock.parent);
-    IRBlock body = new IRBlock("for.body." + no, currentBlock.parent);
-    IRBlock step = new IRBlock("for.step." + no, currentBlock.parent);
+    loopDepth++;
+    IRBlock end = new IRBlock("for.end." + no, currentBlock.parent, loopDepth - 1);
+    IRBlock cond = new IRBlock("for.cond." + no, currentBlock.parent, loopDepth);
+    IRBlock body = new IRBlock("for.body." + no, currentBlock.parent, loopDepth);
+    IRBlock step = new IRBlock("for.step." + no, currentBlock.parent, loopDepth);
     currentScope = new IRScope(currentScope, end, step);
 
     if (node.initStmt != null)
@@ -279,6 +282,7 @@ public class IRBuilder implements ASTVisitor {
 
     currentScope = currentScope.parent;
     currentBlock = currentBlock.parent.addBlock(end);
+    loopDepth--;
   }
   public void visit(ContinueStmtNode node) {
     if (currentScope.loopNext == null) throw new RuntimeException("continue not in loop");
@@ -378,9 +382,9 @@ public class IRBuilder implements ASTVisitor {
 
     if (node.op.equals("&&") || node.op.equals("||")) {
       int no = currentBlock.parent.ifCnt++;
-      IRBlock end = new IRBlock("if.end." + no, currentBlock.parent);
-      IRBlock then = new IRBlock("if.then." + no, currentBlock.parent);
-      IRBlock else_ = new IRBlock("if.else." + no, currentBlock.parent);
+      IRBlock end = new IRBlock("if.end." + no, currentBlock.parent, loopDepth);
+      IRBlock then = new IRBlock("if.then." + no, currentBlock.parent, loopDepth);
+      IRBlock else_ = new IRBlock("if.else." + no, currentBlock.parent, loopDepth);
 
       currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lhsVar, then, else_));
 
@@ -568,10 +572,11 @@ public class IRBuilder implements ASTVisitor {
 
     // for.init: int i = 0
     int no = currentBlock.parent.forCnt++;
-    IRBlock cond = new IRBlock("for.cond." + no, currentBlock.parent);
-    IRBlock end = new IRBlock("for.end." + no, currentBlock.parent);
-    IRBlock body = new IRBlock("for.body." + no, currentBlock.parent);
-    IRBlock step = new IRBlock("for.step." + no, currentBlock.parent);
+    loopDepth++;
+    IRBlock cond = new IRBlock("for.cond." + no, currentBlock.parent, loopDepth);
+    IRBlock end = new IRBlock("for.end." + no, currentBlock.parent, loopDepth - 1);
+    IRBlock body = new IRBlock("for.body." + no, currentBlock.parent, loopDepth);
+    IRBlock step = new IRBlock("for.step." + no, currentBlock.parent, loopDepth);
 
     var cnt = new LocalVar(new IRType("ptr"), String.valueOf(currentBlock.parent.varCnt++)); // store i
     currentBlock.addInst(new IRAllocaInst(currentBlock, cnt, new IRType("i32")));
@@ -606,6 +611,7 @@ public class IRBuilder implements ASTVisitor {
 
     // for.end
     currentBlock = currentBlock.parent.addBlock(end);
+    loopDepth--;
     return ret;
   }
 
@@ -636,9 +642,9 @@ public class IRBuilder implements ASTVisitor {
     node.cond.accept(this);
 
     int no = currentBlock.parent.condCnt++;
-    IRBlock then = new IRBlock("cond.then." + no, currentBlock.parent);
-    IRBlock end = new IRBlock("cond.end." + no, currentBlock.parent);
-    IRBlock else_ = new IRBlock("cond.else." + no, currentBlock.parent);
+    IRBlock then = new IRBlock("cond.then." + no, currentBlock.parent, loopDepth);
+    IRBlock end = new IRBlock("cond.end." + no, currentBlock.parent, loopDepth);
+    IRBlock else_ = new IRBlock("cond.else." + no, currentBlock.parent, loopDepth);
 
     currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, then, else_));
 

@@ -18,9 +18,10 @@ public class IRBlock {
   public HashSet<IRBlock> domFrontier = null; // * for DomTree
   public HashMap<String, IRPhiInst> phiInsts = null; // * for Mem2Reg
   public ASMBlock asmBlock = null; // * for InstSelection
+  public int loopDepth = 0;
 //  public HashMap<String, LocalVar> defs = null, uses = null;
 
-  public IRBlock(String label, IRFuncDef parent) {
+  public IRBlock(String label, IRFuncDef parent, int loopDepth) {
     this.parent = parent;
     this.label = label;
     this.instructions = new ArrayList<>();
@@ -29,8 +30,7 @@ public class IRBlock {
     this.domFrontier = new HashSet<>();
     this.domChildren = new ArrayList<>();
     this.phiInsts = new HashMap<>();
-//    this.defs = new HashMap<>();
-//    this.uses = new HashMap<>();
+    this.loopDepth = loopDepth;
   }
 
   public String toString() {

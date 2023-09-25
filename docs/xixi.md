@@ -1259,7 +1259,7 @@ dfs CFG，找到所有critical edge并添加blank block，其中添加jump语句
 
 在call时，如果有溢出参数，将其推入sp的下方，第8个参数在最下面，最后一个参数在最上面，并在call之前把sp移到最下方（参数在sp上方），call完后恢复sp
 
-在进入函数时，先用新的virtualReg load出溢出的参数，再移动sp（本函数所需的栈空间，不包括溢出的参数），再保存本函数用到的tmp regs
+在进入函数时，先用新的virtualReg mv出a0-a7里的参数，或者load出溢出的参数，再移动sp（本函数所需的栈空间，不包括溢出的参数），再保存本函数用到的tmp regs
 
 在退出函数时（每一句ret前）,恢复sp，恢复用到的regs
 
@@ -1279,19 +1279,134 @@ in[n] = use[n] \cup (out[n] - def[n]) \\
 out[n] = \cup _{s \in suc[n]} in[s] \\
 out[exit] = \empty
 $$
- 
 
+### CFG
+
+继承ir的cfg即可
+
+在ASMBlock里存对应的IRBlock，null表示startBlock
+
+遍历所有block，
+
+如果为startBlock，保存index，设置于下一个block（entry）的关系
+
+否则，copy对应irblock的所有前驱后继
+
+### use, def
+
+在ASMBlock中保存两个set<VirtualRegister>作为use和def
+
+对每个block：
+
+```
+for (each inst: x <- y op z)
+	if y not in def: add y to use
+	if z not in def: add z to use
+	add x to def
+```
+
+### livein, liveout
+
+先通过startBlock找到一个函数内的所有block的编号范围
+
+对于每个函数内的所有block
+
+```
+changed = true;
+while (changed) 
+	changed = false;
+	for (each block in function)
+		recompute liveOut(block) and liveIn(block)
+		if (liveOut(block) changed)
+			changed = true
+```
 
 
 ## 寄存器分配
 
 尽可能地将临时变量分配到寄存器中
 
-### 建冲突图
+```
+liveAnalysis
 
-无向图，节点为变量，边表示冲突
+for eachFunction:
+	build graph
+	init worklists
+	do {
+		simplify
+		coalesce
+		freeze
+		select spill
+	} while()
+	assign colour
+	if (spilled) rewrite, continue
+	else break
+```
 
-推出每条指令的liveout，遍历每条指令，所有def向此时存活的其他变量（这条指令的所有def和liveout）连边
+### 建冲突图(Build)
+
+一个函数一张图
+
+**无向**图，节点为变量，边表示冲突
+
+遍历每条指令，所有def向此时存活的其他变量（这条指令的所有def和liveout）连边
+
+```
+for each BB
+	liveNow = liveOut(BB)
+	for each inst: C = a,b
+		for each i in liveNow(postorder): 
+			addedge(c,i) 
+		liveNow.remove(c)
+		liveNow.add(a,b)
+```
+
+### initial worklist
+
+simplifyList: 所有传送无关的低度数节点
+
+CoalesceList：所有mv指令
+
+freezeWorkList：所有传送相关的低度数节点
+
+spillWorkList：所有度数大于等于k的节点
+
+### 简化(Simplify)
+
+1. 选择一个度数<k且传送无关的节点，把它和它的边移除，节点入栈**selectStack**
+2. 迭代直到所有低度数且传送无关的节点都入栈（清空simplifyWorkList）
+
+### 合并 Coalesce
+
+对worklist中所有指令：mv, u->v
+
+
+
+如果指令的rd和rs间无边，且a的每个邻居t的度数小于k或t与b冲突，将两点合并
+
+合并u，v：把v并到u上，**相当于删除了v这个虚拟寄存器**
+
+​		记录：son(u).add(v)，fa(v)=u
+
+​		把v的所有连边连到u上（不重复）
+
+​		如果u仍为低度数，simplufyList.add(u)
+
+​		把这条mv指令删去
+
+​		如果u不再传送相关，从freezeList里删去
+
+​		把v从freezeList和spillList里删去
+
+else，若无法合并这条传送，
+
+### freeze
+
+### select spill
+
+### assign colour
+
+### rewrite
 
 # TODO
 

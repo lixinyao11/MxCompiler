@@ -31,11 +31,8 @@ public class ASMBranchInst extends ASMInst {
     };
     return String.format("%-8s", (rs2 == null) ? tmp + "z" : tmp) + " " + rs1 + ", " + ((rs2 == null) ? "" : (rs2 + ", ")) + dst;
   }
-  @Override
-  public void initUseDef(HashSet<VirtualRegister> use, HashSet<VirtualRegister> def) {
-    if (rs1 instanceof VirtualRegister && !def.contains(rs1))
-      use.add((VirtualRegister) rs1);
-    if (rs2 != null && rs2 instanceof VirtualRegister && !def.contains(rs2))
-      use.add((VirtualRegister) rs2);
-  }
+  public Register use1() { return rs1; }
+  public void setUse1(Register reg) { rs1 = reg; }
+  public Register use2() { return rs2; }
+  public void setUse2(Register reg) { rs2 = reg; }
 }

@@ -22,7 +22,7 @@ public class IRFuncDef extends IRModule {
     this.paras = new ArrayList<>();
     this.body = new ArrayList<>();
     this.idCnt = new HashMap<>();
-    body.add(new IRBlock("entry", this));
+    body.add(new IRBlock("entry", this, 0));
 //    this.manager = new FuncManager();
   }
   @Override
@@ -39,12 +39,6 @@ public class IRFuncDef extends IRModule {
     }
     sb.append("}\n");
     return sb.toString();
-  }
-
-  public IRBlock addBlock(String name) {
-    IRBlock block = new IRBlock(name, this);
-    body.add(block);
-    return block;
   }
 
   public IRBlock addBlock(IRBlock block) {

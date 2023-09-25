@@ -19,9 +19,6 @@ public class ASMLuiInst extends ASMInst {
   public String toString() {
     return String.format("%-8s", "lui") + rd + ", " + imm;
   }
-  @Override
-  public void initUseDef(HashSet<VirtualRegister> use, HashSet<VirtualRegister> def) {
-    if (rd instanceof VirtualRegister)
-      def.add((VirtualRegister) rd);
-  }
+  public Register def() { return rd; }
+  public void setDef(Register reg) { rd = reg; }
 }

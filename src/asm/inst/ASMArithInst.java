@@ -35,13 +35,10 @@ public class ASMArithInst extends ASMInst {
     };
     return String.format("%-8s", tmp) + rd + ", " + rs1 + ", " + rs2;
   }
-  @Override
-  public void initUseDef(HashSet<VirtualRegister> use, HashSet<VirtualRegister> def) {
-    if (rs1 instanceof VirtualRegister && !def.contains(rs1))
-      use.add((VirtualRegister) rs1);
-    if (rs2 instanceof VirtualRegister && !def.contains(rs2))
-      use.add((VirtualRegister) rs2);
-    if (rd instanceof VirtualRegister)
-      def.add((VirtualRegister) rd);
-  }
+  public Register def() { return rd; }
+  public void setDef(Register reg) { rd = reg; }
+  public Register use1() { return rs1; }
+  public void setUse1(Register reg) { rs1 = reg; }
+  public Register use2() { return rs2; }
+  public void setUse2(Register reg) { rs2 = reg; }
 }

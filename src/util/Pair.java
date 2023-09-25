@@ -9,4 +9,9 @@ public class Pair<T1, T2> {
     this.second = second;
   }
 
+  public boolean equals(Object obj) {
+    assert obj instanceof Pair;
+    return first.equals(((Pair<T1, T2>) obj).first) && second.equals(((Pair<T1, T2>) obj).second);
+  }
+
 }

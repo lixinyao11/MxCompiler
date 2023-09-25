@@ -21,9 +21,6 @@ public class ASMSwInst extends ASMInst {
   public String toString() {
     return String.format("%-8s", "sw") + rs + ", " + addr;
   }
-  @Override
-  public void initUseDef(HashSet<VirtualRegister> use, HashSet<VirtualRegister> def) {
-    if (rs instanceof VirtualRegister && !def.contains(rs))
-      use.add((VirtualRegister) rs);
-  }
+  public Register use1() { return rs; }
+  public void setUse1(Register reg) { rs = reg; }
 }

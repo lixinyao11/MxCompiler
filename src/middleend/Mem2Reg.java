@@ -18,6 +18,7 @@ public class Mem2Reg {
   HashMap<String, HashSet<IRBlock>> defBlocks = null;
   HashMap<String, Stack<Integer>> numStack = null;
   HashMap<String, Stack<IREntity>> valueStack = null;
+  HashSet<IRBlock> visitedSplit = new HashSet<>();
 
   public Mem2Reg(IRProgram program) {
     this.program = program;
@@ -40,10 +41,13 @@ public class Mem2Reg {
   }
 
   private void splitCriticalEdge(IRBlock block) {
+    visitedSplit.add(block);
     boolean flag = block.succs.size() > 1;
-    for (var succ : block.succs) {
+    var copy = new HashSet<IRBlock>(block.succs);
+    for (var succ : copy) {
+      if (visitedSplit.contains(succ)) continue;
       if (flag && succ.preds.size() > 1) {
-        var tmp = new IRBlock("blank." + blankBlockCnt++, block.parent);
+        var tmp = new IRBlock("blank." + blankBlockCnt++, block.parent, block.loopDepth);
         tmp.addInst(new IRJumpInst(tmp, succ));
         block.parent.body.add(block.parent.body.indexOf(succ), tmp);
         tmp.succs.add(succ);
@@ -90,7 +94,9 @@ public class Mem2Reg {
       } else if (inst instanceof IRStoreInst) {
         var pos = ((IRStoreInst) inst).dest;
         if (pos instanceof LocalVar && allocaVars.containsKey(((LocalVar) pos).getName())) {
-          valueStack.get(((LocalVar) pos).getName()).push(((IRStoreInst) inst).src);
+          if (!(((IRStoreInst) inst).src instanceof IRLiteral) || !((IRStoreInst) inst).src.getType().isPtr)
+            // ! store null --> addr 会被忽略
+            valueStack.get(((LocalVar) pos).getName()).push(((IRStoreInst) inst).src);
           removeInsts.add(inst);
         }
       } else if (inst instanceof IRLoadInst) {
@@ -104,8 +110,8 @@ public class Mem2Reg {
             ((IRLoadInst) inst).result.type = ((LocalVar) stack.peek()).type;
             removeInsts.add(inst);
           } else if (stack.peek() instanceof IRLiteral) {
+            assert !((IRLoadInst) inst).result.type.isPtr;
             IRLiteral tmp0 = new IRLiteral("0", ((IRLoadInst) inst).result.type);
-            if (((IRLoadInst) inst).result.type.isPtr) tmp0 = new IRLiteral("null", ((IRLoadInst) inst).result.type);
             block.instructions.set(i, new IRBinaryInst(block, ((IRLoadInst) inst).result, "+", stack.peek(), tmp0));
           } else if (stack.peek() instanceof GlobalPtr) {
             block.instructions.set(i, new IRGetElementPtrInst(block, ((IRLoadInst) inst).result, "i32", (GlobalPtr) stack.peek(), new IRLiteral("0", new IRType("i32"))));

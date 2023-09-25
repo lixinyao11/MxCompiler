@@ -1,6 +1,6 @@
 package asm.inst;
 
-import asm.operand.VirtualRegister;
+import asm.operand.*;
 import asm.section.ASMBlock;
 
 import java.util.HashSet;
@@ -17,5 +17,4 @@ public class ASMComment extends ASMInst {
   public String toString() {
     return "# " + comment;
   }
-  public void initUseDef(HashSet<VirtualRegister> use, HashSet<VirtualRegister> def) {}
 }

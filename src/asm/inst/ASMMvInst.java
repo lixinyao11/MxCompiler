@@ -19,11 +19,8 @@ public class ASMMvInst extends ASMInst {
   public String toString() {
     return String.format("%-8s", "mv") + rd + ", " + rs;
   }
-  @Override
-  public void initUseDef(HashSet<VirtualRegister> use, HashSet<VirtualRegister> def) {
-    if (rs instanceof VirtualRegister && !def.contains(rs))
-      use.add((VirtualRegister) rs);
-    if (rd instanceof VirtualRegister)
-      def.add((VirtualRegister) rd);
-  }
+  public Register def() { return rd; }
+  public void setDef(Register reg) { rd = reg; }
+  public Register use1() { return rs; }
+  public void setUse1(Register reg) { rs = reg; }
 }

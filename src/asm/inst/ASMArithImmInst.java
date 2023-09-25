@@ -9,7 +9,7 @@ import java.util.HashSet;
 
 public class ASMArithImmInst extends ASMInst {
   Register rd = null, rs1 = null;
-  Immediate imm = null;
+  public Immediate imm = null;
   String op = null;
 
   public ASMArithImmInst(ASMBlock parent, String op, Register rd, Register rs1, Immediate imm) {
@@ -33,12 +33,9 @@ public class ASMArithImmInst extends ASMInst {
     };
     return String.format("%-8s", tmp) + rd + ", " + rs1 + ", " + imm;
   }
-  @Override
-  public void initUseDef(HashSet<VirtualRegister> use, HashSet<VirtualRegister> def) {
-    if (rs1 instanceof VirtualRegister && !def.contains(rs1))
-      use.add((VirtualRegister) rs1);
-    if (rd instanceof VirtualRegister)
-      def.add((VirtualRegister) rd);
-  }
+  public Register def() { return rd; }
+  public Register use1() { return rs1; }
+  public void setDef(Register reg) { rd = reg; }
+  public void setUse1(Register reg) { rs1 = reg; }
 
 }

@@ -18,9 +18,6 @@ public class ASMLiInst extends ASMInst {
   public String toString() {
     return String.format("%-8s", "li") + rd + ", " + imm;
   }
-  @Override
-  public void initUseDef(HashSet<VirtualRegister> use, HashSet<VirtualRegister> def) {
-    if (rd instanceof VirtualRegister)
-      def.add((VirtualRegister) rd);
-  }
+  public Register def() { return rd; }
+  public void setDef(Register reg) { rd = reg; }
 }
