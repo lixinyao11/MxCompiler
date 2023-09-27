@@ -61,4 +61,7 @@ public class PhysicalRegister extends Register {
     if (name.startsWith("t")) return Integer.parseInt(name.substring(1)) + 25;
     throw new RuntimeException("PhysicalRegister.getColor: unknown register name");
   }
+  public boolean isCalleeSave() {
+    return name.startsWith("s");
+  }
 }

@@ -16,7 +16,7 @@ import java.util.Stack;
 public class RegAllocation {
   ASMProgram program = null;
   ASMFunction curFunc = null;
-  public static final int K = 27;
+  public static final int K = 26;
   HashSet<Register> precolored = new HashSet<>(); // PhysicalRegister,precolored
   HashSet<Register> initial = new HashSet<>(); // VirtualRegister, not yet processed
   ArrayList<Register> simplifyWorklist = new ArrayList<>(); // low degree non-move-related
@@ -64,17 +64,42 @@ public class RegAllocation {
       RewriteProgram();
     }
 
+    curFunc.usedRegs = new HashSet<>();
     for (var block : curFunc.blocks) {
       ArrayList<ASMInst> newInsts = new ArrayList<>();
       for (var inst : block.insts) {
-        if (inst.def() != null && inst.def() instanceof VirtualRegister)
-          inst.setDef(getColor(inst.def()));
-        if (inst.use1() != null && inst.use1() instanceof VirtualRegister)
-          inst.setUse1(getColor(inst.use1()));
-        if (inst.use2() != null && inst.use2() instanceof VirtualRegister)
-          inst.setUse2(getColor(inst.use2()));
-        if (!(inst instanceof ASMMvInst) || inst.use1() != inst.def())
+        if (inst instanceof ASMCallInst call) {
+          HashSet<Register> live_new = new HashSet<>();
+          for (var reg : call.live) {
+            if (reg instanceof PhysicalRegister) live_new.add(reg);
+            else live_new.add(getColor(reg));
+          }
+          call.live = live_new;
+        }
+
+        HashSet<PhysicalRegister> usedRegTmp = new HashSet<>();
+        for (var reg : inst.getRegs())
+          if (reg instanceof PhysicalRegister reg_) usedRegTmp.add(reg_);
+        if (inst.def() != null && inst.def() instanceof VirtualRegister) {
+          var tmp = getColor(inst.def());
+          inst.setDef(tmp);
+          usedRegTmp.add(tmp);
+        }
+        if (inst.use1() != null && inst.use1() instanceof VirtualRegister) {
+          var tmp = getColor(inst.use1());
+          inst.setUse1(tmp);
+          usedRegTmp.add(tmp);
+        }
+        if (inst.use2() != null && inst.use2() instanceof VirtualRegister) {
+          var tmp = getColor(inst.use2());
+          inst.setUse2(tmp);
+          usedRegTmp.add(tmp);
+        }
+
+        if (!(inst instanceof ASMMvInst) || inst.use1() != inst.def()) {
           newInsts.add(inst);
+          curFunc.usedRegs.addAll(usedRegTmp);
+        }
       }
       block.insts = newInsts;
     }
@@ -128,7 +153,10 @@ public class RegAllocation {
     while (!selectStack.isEmpty()) {
       Register reg = selectStack.pop();
       HashSet<Integer> okColors = new HashSet<>();
-      for (int i = 0; i < K; ++i) okColors.add(i + 5);
+      for (int i = 0; i < K; ++i) {
+        if (i < 5) okColors.add(i + 5);
+        else okColors.add(i + 6);
+      }
       for (var adj : adjList.get(reg)) {
         Register alias = GetAlias(adj);
         if (coloredNodes.contains(alias) || precolored.contains(alias))
@@ -368,7 +396,7 @@ public class RegAllocation {
     for (var block : curFunc.blocks) {
       for (var inst : block.insts) {
         for (var reg : inst.getRegs()) {
-          if (isSpRa(reg)) continue;
+          if (isSpRaA0(reg)) continue;
           moveList.put(reg, new HashSet<>());
           if (reg instanceof PhysicalRegister) {
             precolored.add(reg);
@@ -402,23 +430,25 @@ public class RegAllocation {
       HashSet<Register> live = new HashSet<>(block.liveOut);
       for (int i = block.insts.size() - 1; i >= 0; --i) {
         ASMInst inst = block.insts.get(i);
-        if (inst instanceof ASMMvInst) {
+        if (inst instanceof ASMMvInst mv && !isSpRaA0(mv.def()) && !isSpRaA0(mv.use1())) {
           assert inst.def() != null;
           assert inst.use1() != null;
           assert inst.use2() == null;
 //          live.remove(inst.use1());
-          moveList.get(inst.use1()).add((ASMMvInst) inst);
-          moveList.get(inst.def()).add((ASMMvInst) inst);
-          worklistMoves.add((ASMMvInst) inst);
+          moveList.get(inst.use1()).add(mv);
+          moveList.get(inst.def()).add(mv);
+          worklistMoves.add(mv);
         }
-        if (inst.def() != null && !isSpRa(inst.def())) {
+        if (inst instanceof ASMCallInst call)
+          call.live = new HashSet<>(live);
+        if (inst.def() != null && !isSpRaA0(inst.def())) {
           for (var l : live)
-            if (!isSpRa(l)) addEdge(l, inst.def());
+            if (!isSpRaA0(l)) addEdge(l, inst.def());
           live.remove(inst.def());
         }
-        if (inst.use1() != null && !isSpRa(inst.use1()))
+        if (inst.use1() != null && !isSpRaA0(inst.use1()))
           live.add(inst.use1());
-        if (inst.use2() != null && !isSpRa(inst.use2()))
+        if (inst.use2() != null && !isSpRaA0(inst.use2()))
           live.add(inst.use2());
       }
     }
@@ -440,8 +470,8 @@ public class RegAllocation {
       degree.put(v, degree.get(v) + 1);
     }
   }
-  private boolean isSpRa(Register reg) {
+  private boolean isSpRaA0(Register reg) {
     if (reg instanceof VirtualRegister) return false;
-    return ((PhysicalRegister) reg).name.equals("sp") || ((PhysicalRegister) reg).name.equals("ra");
+    return ((PhysicalRegister) reg).name.equals("sp") || ((PhysicalRegister) reg).name.equals("ra") || ((PhysicalRegister) reg).name.equals("a0");
   }
 }

@@ -1,8 +1,11 @@
 package asm.section;
 
-import asm.inst.ASMArithImmInst;
+import asm.inst.*;
+import asm.operand.PhysicalRegister;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 
 public class ASMFunction {
   public ArrayList<ASMBlock> blocks = null;
@@ -11,6 +14,9 @@ public class ASMFunction {
   public int stackSize = 0;
   public ASMArithImmInst moveSpInst = null;
   public ArrayList<ASMArithImmInst> restoreSpInsts = new ArrayList<>();
+  public HashMap<ASMCallInst, ASMSwInst> callerSaveRa = new HashMap<>();
+  public HashMap<ASMCallInst, ASMLwInst> callerRestoreRa = new HashMap<>();
+  public HashSet<PhysicalRegister> usedRegs = new HashSet<>();
 
   public ASMFunction(String label) {
     this.blocks = new ArrayList<>();
