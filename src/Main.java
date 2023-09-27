@@ -41,6 +41,9 @@ public class Main {
     ASMProgram asmProgram = new ASMProgram();
     new InstSelection(asmProgram).visit(irProgram);
 //    System.out.write(asmProgram.toString().getBytes());
+    new DeadCodeElimination(asmProgram).work();
+//    System.out.write(asmProgram.toString().getBytes());
+
     new RegAllocation(asmProgram).work();
     new StackManager(asmProgram).work();
     System.out.write(asmProgram.toString().getBytes());
