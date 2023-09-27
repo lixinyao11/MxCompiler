@@ -11,7 +11,9 @@ import ir.util.IRType;
 import ir.util.entity.*;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 
 import static java.lang.Math.min;
 
@@ -29,14 +31,14 @@ public class InstSelection implements IRVisitor {
 
   public InstSelection(ASMProgram program) {
     this.program = program;
-    sp = new PhysicalRegister("sp");
-    ra = new PhysicalRegister("ra");
+    sp = PhysicalRegister.get("sp");
+    ra = PhysicalRegister.get("ra");
     for (int i = 0; i < 8; ++i)
-      aRegs[i] = new PhysicalRegister("a" + i);
+      aRegs[i] = PhysicalRegister.get("a" + i);
     for (int i = 0; i < 7; ++i)
-      tRegs[i] = new PhysicalRegister("t" + i);
+      tRegs[i] = PhysicalRegister.get("t" + i);
     for (int i = 0; i < 12; ++i)
-      sRegs[i] = new PhysicalRegister("s" + i);
+      sRegs[i] = PhysicalRegister.get("s" + i);
   }
 
   public void visit(IRProgram program) {
@@ -81,19 +83,24 @@ public class InstSelection implements IRVisitor {
       block.accept(this); // 遇到LocalVar，去找找manager里的para或者virtual register
     }
     for (var block : funcDef.body) {
-      block.phiInsts.forEach((key, phi) -> {
-        phi.accept(this);
-      });
+      List<IRPhiInst> phis = new ArrayList<>(block.phiInsts.values());
+      phis.sort(Comparator.comparing(IRPhiInst::toString));
+      phis.forEach(phi -> phi.accept(this));
+//      block.phiInsts.forEach((key, phi) -> {
+//        phi.accept(this);
+//      });
     }
 
     currentBlock = startBlock;
     // 移动sp，提供本函数需要的栈空间，保存s0-s11
-    currentFunc.moveSpInst = (ASMArithImmInst) currentBlock.addInst(new ASMArithImmInst(currentBlock, "+", sp, sp, new Immediate(-0)));
     MemAddr[] sAddr = new MemAddr[12];
+    for (int i = 0; i < 12; ++i) {
+      sAddr[i] = new MemAddr(new Immediate(currentFunc.stackSize), sp);
+      currentFunc.stackSize += 4;
+    }
     for (int i = 0; i < 12; ++i)
-      sAddr[i] = new MemAddr(new Immediate(currentFunc.stackSize += 4), sp);
-    for (int i = 0; i < 12; ++i)
-      currentBlock.addInst(new ASMSwInst(currentBlock, sRegs[i], sAddr[i]));
+      currentBlock.addFirstInst(new ASMSwInst(currentBlock, sRegs[i], sAddr[i]));
+    currentFunc.moveSpInst = (ASMArithImmInst) currentBlock.addFirstInst(new ASMArithImmInst(currentBlock, "+", sp, sp, new Immediate(-0)));
 
     // 所有ret前恢复sp，恢复reg
     for (var inst : retInsts) {
@@ -131,13 +138,18 @@ public class InstSelection implements IRVisitor {
     currentBlock.addInst(new ASMComment(currentBlock, inst.toString()));
 
     // save ra and t0-t6 and a0-a7
-    var raAddr = new MemAddr(new Immediate(currentFunc.stackSize += 4), sp);
+    var raAddr = new MemAddr(new Immediate(currentFunc.stackSize), sp);
+    currentFunc.stackSize += 4;
     MemAddr[] tAddr = new MemAddr[7];
-    for (int i = 0; i < 7; ++i)
-      tAddr[i] = new MemAddr(new Immediate(currentFunc.stackSize += 4), sp);
+    for (int i = 0; i < 7; ++i) {
+      tAddr[i] = new MemAddr(new Immediate(currentFunc.stackSize), sp);
+      currentFunc.stackSize += 4;
+    }
     MemAddr[] aAddr = new MemAddr[8];
-    for (int i = 0; i < 8; ++i)
-      aAddr[i] = new MemAddr(new Immediate(currentFunc.stackSize += 4), sp);
+    for (int i = 0; i < 8; ++i) {
+      aAddr[i] = new MemAddr(new Immediate(currentFunc.stackSize), sp);
+      currentFunc.stackSize += 4;
+    }
     currentBlock.addInst(new ASMSwInst(currentBlock, ra, raAddr));
     for (int i = 0; i < 7; ++i)
       currentBlock.addInst(new ASMSwInst(currentBlock, tRegs[i], tAddr[i]));
@@ -175,38 +187,47 @@ public class InstSelection implements IRVisitor {
     currentBlock.addInst(new ASMComment(currentBlock, inst.toString()));
     var ptr = getIREntity(inst.ptr);
     var index = getIREntity(inst.indexs.get(inst.indexs.size() - 1));
-    currentBlock.addInst(new ASMArithInst(currentBlock, "*", index, index, getIREntity(new IRLiteral("4", new IRType("i32")))));
-    currentBlock.addInst(new ASMArithInst(currentBlock, "+", ptr, ptr, index));
+    var tmp1 = new VirtualRegister();
+    var tmp2 = new VirtualRegister();
+    currentBlock.addInst(new ASMArithInst(currentBlock, "*", tmp1, index, getIREntity(new IRLiteral("4", new IRType("i32")))));
+    currentBlock.addInst(new ASMArithInst(currentBlock, "+", tmp2, ptr, tmp1));
 
-    currentBlock.addInst(new ASMMvInst(currentBlock, getIREntity(inst.result), ptr));
+    currentBlock.addInst(new ASMMvInst(currentBlock, getIREntity(inst.result), tmp2));
   }
   public void visit(IRIcmpInst inst) {
     currentBlock.addInst(new ASMComment(currentBlock, inst.toString()));
 
     var reg1 = getIREntity(inst.rhs1);
     var reg2 = getIREntity(inst.rhs2);
-    var reg3 = new VirtualRegister();
+    var tmp1 = new VirtualRegister();
+    var tmp2 = new VirtualRegister();
 
     // sub reg1, reg2
-    currentBlock.addInst(new ASMArithInst(currentBlock, "-", reg3, reg1, reg2));
+    currentBlock.addInst(new ASMArithInst(currentBlock, "-", tmp1, reg1, reg2));
     // set if __ 0
     switch (inst.op) {
-      case ">", "==", "<", "!=" -> currentBlock.addInst(new ASMSetInst(currentBlock, inst.op, reg1, reg3));
+      case ">", "==", "<", "!=" -> {
+        currentBlock.addInst(new ASMSetInst(currentBlock, inst.op, tmp2, tmp1));
+        currentBlock.addInst(new ASMMvInst(currentBlock, getIREntity(inst.result), tmp2));
+      }
       case ">=" -> {
-        currentBlock.addInst(new ASMSetInst(currentBlock, ">", reg1, reg3));
-        currentBlock.addInst(new ASMSetInst(currentBlock, "==", reg2, reg3));
-        currentBlock.addInst(new ASMArithInst(currentBlock, "|", reg1, reg1, reg2));
+        var tmp3 = new VirtualRegister();
+        var tmp4 = new VirtualRegister();
+        currentBlock.addInst(new ASMSetInst(currentBlock, ">", tmp2, tmp1));
+        currentBlock.addInst(new ASMSetInst(currentBlock, "==", tmp3, tmp1));
+        currentBlock.addInst(new ASMArithInst(currentBlock, "|", tmp4, tmp2, tmp3));
+        currentBlock.addInst(new ASMMvInst(currentBlock, getIREntity(inst.result), tmp4));
       }
       case "<=" -> {
-        currentBlock.addInst(new ASMSetInst(currentBlock, "<", reg1, reg3));
-        currentBlock.addInst(new ASMSetInst(currentBlock, "==", reg2, reg3));
-        currentBlock.addInst(new ASMArithInst(currentBlock, "|", reg1, reg1, reg2));
+        var tmp3 = new VirtualRegister();
+        var tmp4 = new VirtualRegister();
+        currentBlock.addInst(new ASMSetInst(currentBlock, "<", tmp2, tmp1));
+        currentBlock.addInst(new ASMSetInst(currentBlock, "==", tmp3, tmp1));
+        currentBlock.addInst(new ASMArithInst(currentBlock, "|", tmp4, tmp2, tmp3));
+        currentBlock.addInst(new ASMMvInst(currentBlock, getIREntity(inst.result), tmp4));
       }
       default -> throw new RuntimeException("IcmpInst: invalid op");
     }
-
-    // result = reg1
-    currentBlock.addInst(new ASMMvInst(currentBlock, getIREntity(inst.result), reg1));
   }
   public void visit(IRJumpInst inst) {
     currentBlock.addInst(new ASMComment(currentBlock, inst.toString()));
@@ -232,7 +253,12 @@ public class InstSelection implements IRVisitor {
     Register result = getIREntity(inst.result);
     for (var block : inst.blocks) {
       currentBlock = blocks.get(block.label);
+      var exitInst = currentBlock.insts.get(currentBlock.insts.size() - 1);
+      if (exitInst instanceof ASMBranchInst || exitInst instanceof ASMJInst || exitInst instanceof ASMRetInst)
+        currentBlock.insts.remove(exitInst);
       currentBlock.addInst(new ASMMvInst(currentBlock, result, getIREntity(inst.values.get(inst.blocks.indexOf(block)))));
+      if (exitInst instanceof ASMBranchInst || exitInst instanceof ASMJInst || exitInst instanceof ASMRetInst)
+        currentBlock.addInst(exitInst);
     }
   }
 

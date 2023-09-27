@@ -25,5 +25,7 @@ public class ASMLwInst extends ASMInst {
     return String.format("%-8s", "lw") + rd + ", " + addr;
   }
   public Register def() { return rd; }
+  public Register use1() { return addr.base; }
   public void setDef(Register reg) { rd = reg; }
+  public void setUse1(Register reg) { addr.base = reg; }
 }

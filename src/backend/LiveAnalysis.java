@@ -1,6 +1,9 @@
 package backend;
 
+import asm.operand.Register;
 import asm.section.*;
+
+import java.util.HashSet;
 
 public class LiveAnalysis {
   public void workOnFunc(ASMFunction func) {
@@ -10,7 +13,7 @@ public class LiveAnalysis {
     while (changed) {
       changed = false;
       for (var block : func.blocks)
-        changed = recompute(block);
+        changed |= recompute(block);
     }
   }
   private void buildCFG(ASMFunction func) {
@@ -27,14 +30,26 @@ public class LiveAnalysis {
     }
   }
   private boolean recompute(ASMBlock block) {
-    var save = block.liveOut;
+    var save = new HashSet<>(block.liveOut);
+    var saveIn = new HashSet<>(block.liveIn);
     for (var succ : block.succs)
       block.liveOut.addAll(succ.liveIn);
-    block.liveIn = block.use;
+    block.liveIn = new HashSet<>(block.use);
     for (var out : block.liveOut) {
-      if (!block.def.contains(out))
+      if (isliveIn(block, out))
         block.liveIn.add(out);
     }
-    return !save.equals(block.liveOut);
+    return !save.equals(block.liveOut) || !saveIn.equals(block.liveIn);
+  }
+  private boolean isliveIn(ASMBlock block, Register reg) {
+    for (var inst : block.insts) {
+      if (inst.def() != null && inst.def().equals(reg))
+        return false;
+      if (inst.use1() != null && inst.use1().equals(reg))
+        return true;
+      if (inst.use2() != null && inst.use2().equals(reg))
+        return true;
+    }
+    return true;
   }
 }

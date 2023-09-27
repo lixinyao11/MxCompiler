@@ -40,7 +40,9 @@ public class Main {
 //    System.out.write(irProgram.toString().getBytes());
     ASMProgram asmProgram = new ASMProgram();
     new InstSelection(asmProgram).visit(irProgram);
+//    System.out.write(asmProgram.toString().getBytes());
     new RegAllocation(asmProgram).work();
+    new StackManager(asmProgram).work();
     System.out.write(asmProgram.toString().getBytes());
   }
 }

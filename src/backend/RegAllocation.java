@@ -4,6 +4,8 @@ import asm.ASMProgram;
 import asm.inst.*;
 import asm.operand.*;
 import asm.section.*;
+import ir.IRBlock;
+import ir.inst.IRBinaryInst;
 import util.Pair;
 
 import java.util.ArrayList;
@@ -14,7 +16,7 @@ import java.util.Stack;
 public class RegAllocation {
   ASMProgram program = null;
   ASMFunction curFunc = null;
-  public static final int K = 16;
+  public static final int K = 27;
   HashSet<Register> precolored = new HashSet<>(); // PhysicalRegister,precolored
   HashSet<Register> initial = new HashSet<>(); // VirtualRegister, not yet processed
   ArrayList<Register> simplifyWorklist = new ArrayList<>(); // low degree non-move-related
@@ -44,28 +46,50 @@ public class RegAllocation {
     program.functions.forEach(this::workOnFunc);
   }
   private void workOnFunc(ASMFunction func) {
-    new LiveAnalysis().workOnFunc(func);
     curFunc = func;
-    initAll();
-    Build();
-    MakeWorklist();
-    do {
-      if (!simplifyWorklist.isEmpty()) Simplify();
-      else if (!worklistMoves.isEmpty()) Coalesce();
-      else if (!freezeWorklist.isEmpty()) Freeze();
-      else if (!spillWorklist.isEmpty()) SelectSpill();
-    } while (!simplifyWorklist.isEmpty() || !worklistMoves.isEmpty() || !freezeWorklist.isEmpty() || !spillWorklist.isEmpty());
-    AssignColors();
-    if (!spilledNodes.isEmpty()) {
+    spillTemp.clear();
+    while (true) {
+      new LiveAnalysis().workOnFunc(func);
+      initAll();
+      Build();
+      MakeWorklist();
+      do {
+        if (!simplifyWorklist.isEmpty()) Simplify();
+        else if (!worklistMoves.isEmpty()) Coalesce();
+        else if (!freezeWorklist.isEmpty()) Freeze();
+        else if (!spillWorklist.isEmpty()) SelectSpill();
+      } while (!simplifyWorklist.isEmpty() || !worklistMoves.isEmpty() || !freezeWorklist.isEmpty() || !spillWorklist.isEmpty());
+      AssignColors();
+      if (spilledNodes.isEmpty()) break;
       RewriteProgram();
-      workOnFunc(func);
     }
+
+    for (var block : curFunc.blocks) {
+      ArrayList<ASMInst> newInsts = new ArrayList<>();
+      for (var inst : block.insts) {
+        if (inst.def() != null && inst.def() instanceof VirtualRegister)
+          inst.setDef(getColor(inst.def()));
+        if (inst.use1() != null && inst.use1() instanceof VirtualRegister)
+          inst.setUse1(getColor(inst.use1()));
+        if (inst.use2() != null && inst.use2() instanceof VirtualRegister)
+          inst.setUse2(getColor(inst.use2()));
+        if (!(inst instanceof ASMMvInst) || inst.use1() != inst.def())
+          newInsts.add(inst);
+      }
+      block.insts = newInsts;
+    }
+  }
+  private PhysicalRegister getColor(Register reg) {
+    if (!color.containsKey(reg)) throw new RuntimeException("hhe");
+    int tmp = color.get(reg);
+    return PhysicalRegister.get(tmp);
   }
   private void RewriteProgram() {
     VirtualRegister.cnt = curFunc.virtualCnt;
     HashMap<Register, MemAddr> spillAddr = new HashMap<>();
     for (var reg : spilledNodes) {
-      MemAddr addr = new MemAddr(new Immediate(curFunc.stackSize += 4), new PhysicalRegister("sp"));
+      MemAddr addr = new MemAddr(new Immediate(curFunc.stackSize), PhysicalRegister.get("sp"));
+      curFunc.stackSize += 4;
       spillAddr.put(reg, addr);
     }
 
@@ -73,39 +97,39 @@ public class RegAllocation {
       for (int i = 0; i < block.insts.size(); ++i) {
         var inst = block.insts.get(i);
         if (inst.def() != null && spilledNodes.contains(inst.def())) {
+          MemAddr addr = spillAddr.get(inst.def());
           var tmp = new VirtualRegister();
           inst.setDef(tmp);
           spillTemp.add(tmp);
-          MemAddr addr = spillAddr.get(inst.def());
           block.insts.add(i + 1, new ASMSwInst(block, tmp, addr));
         }
         if (inst.use1() != null && spilledNodes.contains(inst.use1())) {
+          MemAddr addr = spillAddr.get(inst.use1());
           var tmp = new VirtualRegister();
           inst.setUse1(tmp);
           spillTemp.add(tmp);
-          MemAddr addr = spillAddr.get(inst.use1());
           block.insts.add(i, new ASMLwInst(block, tmp, addr));
         }
         if (inst.use2() != null && spilledNodes.contains(inst.use2())) {
+          MemAddr addr = spillAddr.get(inst.use2());
           var tmp = new VirtualRegister();
           inst.setUse2(tmp);
           spillTemp.add(tmp);
-          MemAddr addr = spillAddr.get(inst.use2());
           block.insts.add(i, new ASMLwInst(block, tmp, addr));
         }
       }
     }
 
-    curFunc.moveSpInst.imm = new Immediate(-curFunc.stackSize);
-    for (var inst : curFunc.restoreSpInsts) {
-      inst.imm = new Immediate(curFunc.stackSize);
-    }
+//    curFunc.moveSpInst.imm = new Immediate(-curFunc.stackSize);
+//    for (var inst : curFunc.restoreSpInsts) {
+//      inst.imm = new Immediate(curFunc.stackSize);
+//    }
   }
   private void AssignColors() {
     while (!selectStack.isEmpty()) {
       Register reg = selectStack.pop();
       HashSet<Integer> okColors = new HashSet<>();
-      for (int i = 0; i < K; ++i) okColors.add(i);
+      for (int i = 0; i < K; ++i) okColors.add(i + 5);
       for (var adj : adjList.get(reg)) {
         Register alias = GetAlias(adj);
         if (coloredNodes.contains(alias) || precolored.contains(alias))
@@ -275,8 +299,11 @@ public class RegAllocation {
     }
   }
   private HashSet<Register> adjacent(Register reg) {
+    if (!adjList.containsKey(reg)) {
+      int a= 0;
+    }
     HashSet<Register> ret = new HashSet<>(adjList.get(reg));
-    ret.removeIf(r -> !coalescedNodes.contains(r) && !selectStack.contains(r));
+    ret.removeIf(r -> coalescedNodes.contains(r) || selectStack.contains(r));
     return ret;
   }
   /*
@@ -334,6 +361,14 @@ public class RegAllocation {
     alias.clear();
     color.clear();
 
+    // ! 函数参数相关的mv必须预染色！！不能随便染，a0,a1...是固定的
+    for (var inst : curFunc.blocks.get(0).insts) {
+      if (inst instanceof ASMMvInst) {
+        precolored.add(inst.def());
+        color.put(inst.def(), ((PhysicalRegister) inst.use1()).getColor() + 8);
+        degree.put(inst.def(), Integer.MAX_VALUE);
+      }
+    }
     for (var block : curFunc.blocks) {
       for (var inst : block.insts) {
         for (var reg : inst.getRegs()) {
@@ -344,7 +379,7 @@ public class RegAllocation {
             precolored.add(reg);
             color.put(reg, ((PhysicalRegister) reg).getColor());
             degree.put(reg, Integer.MAX_VALUE);
-          } else {
+          } else if (!precolored.contains(reg)) {
             initial.add(reg);
             adjList.put(reg, new HashSet<>());
             degree.put(reg, 0);
@@ -401,6 +436,10 @@ public class RegAllocation {
 
     if (!precolored.contains(u)) {
       if (u instanceof PhysicalRegister) throw new RuntimeException(((PhysicalRegister) u).name);
+//      if (!adjList.containsKey(u)) {
+//        adjList.put(u, new HashSet<>());
+//        degree.put(u, 0);
+//      }
       adjList.get(u).add(v);
       degree.put(u, degree.get(u) + 1);
     }

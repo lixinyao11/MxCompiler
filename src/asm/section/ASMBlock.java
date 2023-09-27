@@ -1,6 +1,6 @@
 package asm.section;
 
-import asm.inst.ASMInst;
+import asm.inst.*;
 import asm.operand.Register;
 import ir.IRBlock;
 import org.antlr.v4.runtime.atn.ContextSensitivityInfo;
@@ -38,14 +38,21 @@ public class ASMBlock extends ASMSection {
     }
     return sb.toString();
   }
-
   public ASMInst addInst(ASMInst inst) {
     insts.add(inst);
+    return inst;
+  }
+  public ASMInst addFirstInst(ASMInst inst) {
+    insts.add(0, inst);
     return inst;
   }
   public void initUseDef() {
     use = new HashSet<>();
     def = new HashSet<>();
+    liveIn = new HashSet<>();
+    liveOut = new HashSet<>();
+    preds = new ArrayList<>();
+    succs = new ArrayList<>();
     for (ASMInst inst : insts) {
       if (inst.use1() != null && !def.contains(inst.use1()))
         use.add(inst.use1());

@@ -1,8 +1,6 @@
 package ir;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
 import asm.section.ASMBlock;
 import ir.inst.*;
@@ -36,7 +34,12 @@ public class IRBlock {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append(label).append(":\n");
-    phiInsts.forEach((key, value) -> sb.append("  ").append(value.toString()).append("\n"));
+    List<IRPhiInst> phis = new ArrayList<>(phiInsts.values());
+    phis.sort(Comparator.comparing(IRPhiInst::toString));
+    for (var phi : phis) {
+      sb.append("  ").append(phi.toString()).append("\n");
+    }
+//    phiInsts.forEach((key, value) -> sb.append("  ").append(value.toString()).append("\n"));
     for (IRInst inst : instructions) {
       sb.append("  ").append(inst.toString()).append("\n");
     }
