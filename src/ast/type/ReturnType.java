@@ -22,7 +22,8 @@ public class ReturnType extends VarType {
     if (obj instanceof ExprType tmp) {
       if (tmp.isNull) {
         if (isVoid) return false;
-        return dim > 0;
+        if (dim > 0) return true;
+        return isClass;
       }
     }
     ReturnType other = new ReturnType(obj);

@@ -35,7 +35,7 @@ public class IRBuilder implements ASTVisitor {
     if (type.equals("ptr")) return 4;
     if (type.equals("bool")) return 4;
     var tmp = globalScope.getClassDecl(type);
-    if (tmp == null || tmp.getSize() == 0) throw new RuntimeException("IRBuilder: unknown type");
+    if (tmp == null) throw new RuntimeException("IRBuilder: unknown type");
     return tmp.getSize();
   }
 
@@ -206,10 +206,23 @@ public class IRBuilder implements ASTVisitor {
     IRBlock else_ = new IRBlock("if.else." + no, currentBlock.parent, loopDepth);
     IRBlock end = new IRBlock("if.end." + no, currentBlock.parent, loopDepth);
 
-    if (node.elseStmt != null)
-      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, then, else_));
-    else
-      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, then, end));
+    if (node.elseStmt != null) {
+      if (lastExpr.value instanceof IRLiteral literal) {
+        var tmp = new LocalVar(new IRType("i32"), String.valueOf(currentBlock.parent.varCnt++));
+        currentBlock.addInst(new IRBinaryInst(currentBlock, tmp, "+", new IRLiteral(String.valueOf(literal.getIntValue()), new IRType("i32")), new IRLiteral("0", new IRType("i32"))));
+        currentBlock.addInst(new IRBrInst(currentBlock, tmp, then, else_));
+      } else {
+        currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, then, else_));
+      }
+    } else {
+      if (lastExpr.value instanceof IRLiteral literal) {
+        var tmp = new LocalVar(new IRType("i32"), String.valueOf(currentBlock.parent.varCnt++));
+        currentBlock.addInst(new IRBinaryInst(currentBlock, tmp, "+", new IRLiteral(String.valueOf(literal.getIntValue()), new IRType("i32")), new IRLiteral("0", new IRType("i32"))));
+        currentBlock.addInst(new IRBrInst(currentBlock, tmp, then, end));
+      } else {
+        currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, then, end));
+      }
+    }
 
     currentBlock = currentBlock.parent.addBlock(then);
     currentScope = new IRScope(currentScope);
@@ -270,7 +283,13 @@ public class IRBuilder implements ASTVisitor {
     currentBlock = currentBlock.parent.addBlock(cond);
     if (node.condExpr != null) {
       node.condExpr.accept(this);
-      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, body, end));
+      if (lastExpr.value instanceof IRLiteral literal) {
+        var tmp = new LocalVar(new IRType("i32"), String.valueOf(currentBlock.parent.varCnt++));
+        currentBlock.addInst(new IRBinaryInst(currentBlock, tmp, "+", new IRLiteral(String.valueOf(literal.getIntValue()), new IRType("i32")), new IRLiteral("0", new IRType("i32"))));
+        currentBlock.addInst(new IRBrInst(currentBlock, tmp, body, end));
+      } else {
+        currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, body, end));
+      }
     }
     else {
       currentBlock.addInst(new IRJumpInst(currentBlock, body));
@@ -652,7 +671,13 @@ public class IRBuilder implements ASTVisitor {
     IRBlock end = new IRBlock("cond.end." + no, currentBlock.parent, loopDepth);
     IRBlock else_ = new IRBlock("cond.else." + no, currentBlock.parent, loopDepth);
 
-    currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, then, else_));
+    if (lastExpr.value instanceof IRLiteral literal) {
+      var tmp = new LocalVar(new IRType("i32"), String.valueOf(currentBlock.parent.varCnt++));
+      currentBlock.addInst(new IRBinaryInst(currentBlock, tmp, "+", new IRLiteral(String.valueOf(literal.getIntValue()), new IRType("i32")), new IRLiteral("0", new IRType("i32"))));
+      currentBlock.addInst(new IRBrInst(currentBlock, tmp, then, else_));
+    } else {
+      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, then, else_));
+    }
 
     currentBlock = currentBlock.parent.addBlock(then);
     node.thenExpr.accept(this);
