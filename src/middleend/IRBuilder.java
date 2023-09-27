@@ -237,7 +237,13 @@ public class IRBuilder implements ASTVisitor {
     currentBlock.addInst(new IRJumpInst(currentBlock, cond));
     currentBlock = currentBlock.parent.addBlock(cond);
     node.cond.accept(this);
-    currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, body, end));
+    if (lastExpr.value instanceof IRLiteral literal) {
+      var tmp = new LocalVar(new IRType("i32"), String.valueOf(currentBlock.parent.varCnt++));
+      currentBlock.addInst(new IRBinaryInst(currentBlock, tmp, "+", new IRLiteral(String.valueOf(literal.getIntValue()), new IRType("i32")), new IRLiteral("0", new IRType("i32"))));
+      currentBlock.addInst(new IRBrInst(currentBlock, tmp, body, end));
+    } else {
+      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, body, end));
+    }
 
     currentBlock = currentBlock.parent.addBlock(body);
     currentScope = new IRScope(currentScope, end, cond);

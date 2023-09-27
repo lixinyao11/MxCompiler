@@ -19,6 +19,12 @@ public class ReturnType extends VarType {
   // void is equal to void only
   @Override
   public boolean equals(BaseType obj) {
+    if (obj instanceof ExprType tmp) {
+      if (tmp.isNull) {
+        if (isVoid) return false;
+        return dim > 0;
+      }
+    }
     ReturnType other = new ReturnType(obj);
     if (isVoid && other.isVoid) return true;
     return !isVoid && !other.isVoid && super.equals(obj);

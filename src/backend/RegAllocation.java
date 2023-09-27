@@ -80,7 +80,6 @@ public class RegAllocation {
     }
   }
   private PhysicalRegister getColor(Register reg) {
-    if (!color.containsKey(reg)) throw new RuntimeException("hhe");
     int tmp = color.get(reg);
     return PhysicalRegister.get(tmp);
   }
@@ -299,9 +298,6 @@ public class RegAllocation {
     }
   }
   private HashSet<Register> adjacent(Register reg) {
-    if (!adjList.containsKey(reg)) {
-      int a= 0;
-    }
     HashSet<Register> ret = new HashSet<>(adjList.get(reg));
     ret.removeIf(r -> coalescedNodes.contains(r) || selectStack.contains(r));
     return ret;
@@ -373,7 +369,6 @@ public class RegAllocation {
       for (var inst : block.insts) {
         for (var reg : inst.getRegs()) {
           if (isSpRa(reg)) continue;
-          degree.put(reg, 0);
           moveList.put(reg, new HashSet<>());
           if (reg instanceof PhysicalRegister) {
             precolored.add(reg);
@@ -436,10 +431,6 @@ public class RegAllocation {
 
     if (!precolored.contains(u)) {
       if (u instanceof PhysicalRegister) throw new RuntimeException(((PhysicalRegister) u).name);
-//      if (!adjList.containsKey(u)) {
-//        adjList.put(u, new HashSet<>());
-//        degree.put(u, 0);
-//      }
       adjList.get(u).add(v);
       degree.put(u, degree.get(u) + 1);
     }
