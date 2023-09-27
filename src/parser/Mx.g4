@@ -28,7 +28,8 @@ statement
     | ';'                                                                       #emptyStmt
     ;
 
-varDef : type Identifier (Assign expression)? (Comma Identifier (Assign expression)?)*;
+varDef : type varDefUnit (Comma varDefUnit)*;
+varDefUnit : Identifier (Assign expression)?;
 type : typeName ('['']')*;
 typeName : baseType | Identifier;
 baseType : Bool | Int | String;

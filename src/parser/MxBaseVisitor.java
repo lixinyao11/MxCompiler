@@ -1,4 +1,4 @@
-// Generated from Mx.g4 by ANTLR 4.13.0
+// Generated from D:/compiler/MxCompiler/src/parser/Mx.g4 by ANTLR 4.13.1
 package parser;
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 
@@ -138,6 +138,13 @@ public class MxBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements MxV
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
 	@Override public T visitVarDef(MxParser.VarDefContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitVarDefUnit(MxParser.VarDefUnitContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

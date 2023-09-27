@@ -410,20 +410,27 @@ public class IRBuilder implements ASTVisitor {
     var lhsVar = lastExpr.value;
 
     if (node.op.equals("&&") || node.op.equals("||")) {
+      if (lastExpr.value instanceof IRLiteral literal) {
+        if (literal.getIntValue() == 0) {
+          if (node.op.equals("&&"))
+            lastExpr = new ExprVar(new IRLiteral("0", new IRType("i32")), null, null);
+          else
+            node.rhs.accept(this);
+        } else {
+          if (node.op.equals("||"))
+            lastExpr = new ExprVar(new IRLiteral("1", new IRType("i32")), null, null);
+          else
+            node.rhs.accept(this);
+        }
+        return;
+      }
+
       int no = currentBlock.parent.ifCnt++;
       IRBlock end = new IRBlock("if.end." + no, currentBlock.parent, loopDepth);
       IRBlock then = new IRBlock("if.then." + no, currentBlock.parent, loopDepth);
       IRBlock else_ = new IRBlock("if.else." + no, currentBlock.parent, loopDepth);
 
-      if (lastExpr.value instanceof IRLiteral literal) {
-        if (literal.getIntValue() == 0)
-          currentBlock.addInst(new IRJumpInst(currentBlock, else_));
-        else
-          currentBlock.addInst(new IRJumpInst(currentBlock, then));
-      } else {
-        currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lhsVar, then, else_));
-      }
-
+      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lhsVar, then, else_));
       currentBlock = currentBlock.parent.addBlock(then);
       if (node.op.equals("&&")) node.rhs.accept(this);
       currentBlock.addInst(new IRJumpInst(currentBlock, end));
@@ -463,7 +470,12 @@ public class IRBuilder implements ASTVisitor {
     if (lhsVar instanceof IRLiteral lhs && lhs.getType().isInt && rhsVar instanceof IRLiteral rhs && rhs.getType().isInt) {
       int l = lhs.getIntValue();
       int r = rhs.getIntValue();
-      int ans = switch (node.op) {
+      int ans = 0;
+      if ((node.op.equals("/") || node.op.equals("%")) && r == 0) {
+        lastExpr = new ExprVar(new IRLiteral(String.valueOf(ans), new IRType("i32")), null, null);
+        return;
+      }
+      ans = switch (node.op) {
         case "==" -> l == r ? 1 : 0;
         case "!=" -> l != r ? 1 : 0;
         case ">" -> l > r ? 1 : 0;
@@ -703,20 +715,20 @@ public class IRBuilder implements ASTVisitor {
   }
   public void visit(ConditionalExprNode node) {
     node.cond.accept(this);
+    if (lastExpr.value instanceof IRLiteral literal) {
+      if (literal.getIntValue() == 0) {
+        node.elseExpr.accept(this);
+      } else {
+        node.thenExpr.accept(this);
+      }
+      return;
+    }
 
     int no = currentBlock.parent.condCnt++;
     IRBlock then = new IRBlock("cond.then." + no, currentBlock.parent, loopDepth);
     IRBlock end = new IRBlock("cond.end." + no, currentBlock.parent, loopDepth);
     IRBlock else_ = new IRBlock("cond.else." + no, currentBlock.parent, loopDepth);
-
-    if (lastExpr.value instanceof IRLiteral literal) {
-      if (literal.getIntValue() == 0)
-        currentBlock.addInst(new IRJumpInst(currentBlock, else_));
-      else
-        currentBlock.addInst(new IRJumpInst(currentBlock, then));
-    } else {
-      currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, then, else_));
-    }
+    currentBlock.addInst(new IRBrInst(currentBlock, (LocalVar) lastExpr.value, then, else_));
 
     currentBlock = currentBlock.parent.addBlock(then);
     node.thenExpr.accept(this);

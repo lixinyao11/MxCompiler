@@ -171,8 +171,8 @@ public class ASTBuilder extends MxBaseVisitor<ASTNode> {
   public ASTNode visitVarDef(MxParser.VarDefContext ctx) {
     VarDefNode varDef = new VarDefNode(new Position(ctx));
     varDef.type = new VarType(ctx.type().typeName().getText(), ctx.type().LBracket().size());
-    for (int i = 0; i < ctx.Identifier().size(); ++i) {
-      varDef.varList.add(new Pair<>(ctx.Identifier(i).getText(), ctx.expression(i) == null ? null : (ExprNode) visit(ctx.expression(i))));
+    for (var unit : ctx.varDefUnit()) {
+      varDef.varList.add(new Pair<>(unit.Identifier().getText(), unit.expression() == null ? null : (ExprNode) visit(unit.expression())));
     }
     return varDef;
   }

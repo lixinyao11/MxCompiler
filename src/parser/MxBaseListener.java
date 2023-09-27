@@ -1,4 +1,4 @@
-// Generated from Mx.g4 by ANTLR 4.13.0
+// Generated from D:/compiler/MxCompiler/src/parser/Mx.g4 by ANTLR 4.13.1
 package parser;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -228,6 +228,18 @@ public class MxBaseListener implements MxListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitVarDef(MxParser.VarDefContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterVarDefUnit(MxParser.VarDefUnitContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitVarDefUnit(MxParser.VarDefUnitContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

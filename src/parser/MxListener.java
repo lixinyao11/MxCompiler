@@ -1,4 +1,4 @@
-// Generated from Mx.g4 by ANTLR 4.13.0
+// Generated from D:/compiler/MxCompiler/src/parser/Mx.g4 by ANTLR 4.13.1
 package parser;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -207,6 +207,16 @@ public interface MxListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitVarDef(MxParser.VarDefContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link MxParser#varDefUnit}.
+	 * @param ctx the parse tree
+	 */
+	void enterVarDefUnit(MxParser.VarDefUnitContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link MxParser#varDefUnit}.
+	 * @param ctx the parse tree
+	 */
+	void exitVarDefUnit(MxParser.VarDefUnitContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link MxParser#type}.
 	 * @param ctx the parse tree

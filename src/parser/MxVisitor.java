@@ -1,4 +1,4 @@
-// Generated from Mx.g4 by ANTLR 4.13.0
+// Generated from D:/compiler/MxCompiler/src/parser/Mx.g4 by ANTLR 4.13.1
 package parser;
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
@@ -128,6 +128,12 @@ public interface MxVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitVarDef(MxParser.VarDefContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link MxParser#varDefUnit}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitVarDefUnit(MxParser.VarDefUnitContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MxParser#type}.
 	 * @param ctx the parse tree
