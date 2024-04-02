@@ -5,8 +5,6 @@ import ir.IRVisitor;
 import ir.util.entity.*;
 import ir.util.IRType;
 
-import java.util.ArrayList;
-
 public class IRLoadInst extends IRInst {
   // %result = load <type>, ptr %ptr
   public LocalVar result = null;

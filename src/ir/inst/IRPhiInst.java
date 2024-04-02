@@ -8,8 +8,9 @@ import ir.util.entity.*;
 import java.util.ArrayList;
 
 public class IRPhiInst extends IRInst {
+  // %x = phi i32 [%x, %pred1.label], [%x, %pred2.then]
   public LocalVar result = null;
-  IRType type = null;
+  public IRType type = null;
   public ArrayList<IREntity> values = null;
   public ArrayList<IRBlock> blocks = null;
 

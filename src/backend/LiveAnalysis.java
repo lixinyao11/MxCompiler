@@ -7,6 +7,7 @@ import java.util.HashSet;
 
 public class LiveAnalysis {
   public void workOnFunc(ASMFunction func) {
+    // System.out.println("Working on function " + func.label);
     func.blocks.forEach(ASMBlock::initUseDef);
     buildCFG(func);
     boolean changed = true;

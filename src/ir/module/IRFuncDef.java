@@ -1,6 +1,5 @@
 package ir.module;
 
-import asm.operand.Register;
 import ir.*;
 import ir.util.entity.LocalVar;
 import ir.util.IRType;
@@ -14,6 +13,7 @@ public class IRFuncDef extends IRModule {
   public ArrayList<IRBlock> body = null;
   public HashMap<String, Integer> idCnt = null;
   public int varCnt = 0, ifCnt = 0, forCnt = 0, whileCnt = 0, condCnt = 0;
+  public int calling_times = 0, called_times = 0;
 //  public FuncManager manager = null;
 
   public IRFuncDef(IRType returnType, String name) {

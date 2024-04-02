@@ -1,6 +1,5 @@
 {
   "java.project.referencedLibraries": [
-    "/usr/lib/local/**/*.jar",
-    "/usr/local/lib/antlr-4.7.2-complete.jar"
+    "/opt/antlr-4.13.1-complete.jar"
   ]
 }

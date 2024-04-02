@@ -895,18 +895,17 @@ class单个对象或数组，返回均非左值
    %1 = alloc (type in array)
    (if class type) call A::A(ptr %1)
    return %1
-   }
-   ```
+   }```
 
    
 
    
 
-   visit第一个expr时：%0 = call malloc(size * ptr + 4bytes)
+visit第一个expr时：%0 = call malloc(size * ptr + 4bytes)
 
-   ​                                  %1 = getelementptr i32 %0 i32 -1
+%1 = getelementptr i32 %0 i32 -1
 
-   ​                                  lastExpr.value = %1
+   lastExpr.value = %1
 
    如果后面还有expr：visit, get size2
 
@@ -1361,15 +1360,13 @@ for each BB
 		liveNow.add(a,b)
 ```
 
-### initial worklist
+### initAll
 
-simplifyList: 所有传送无关的低度数节点
+遍历每个block，每条指令，取出每个register
 
-CoalesceList：所有mv指令
-
-freezeWorkList：所有传送相关的低度数节点
-
-spillWorkList：所有度数大于等于k的节点
+1. 把物理寄存器放入precolored，初始化color，度数为无限大
+2. 虚拟寄存器放入initial，每个开一个adjList，度数为0
+3. 每个寄存器的degree为0，开一个moveList
 
 ### 简化(Simplify)
 
@@ -1400,31 +1397,73 @@ spillWorkList：所有度数大于等于k的节点
 
 else，若无法合并这条传送，
 
-### freeze
-
-### select spill
-
-### assign colour
-
 ### rewrite
 
-# TODO
+给每个spilledNodes分配一块栈空间
 
-mem2reg
+在每个use、def前加上相应的lw，sw，并添加新的虚拟寄存器
 
-regallocation
+保存这些虚拟寄存器
 
-常量传递
+修改移动sp的语句
 
-死代码消除（活跃分析后无用的def应该删去？）
 
-global2local
 
-# Mark
+在ASMFunction中：存虚拟寄存器的cnt，存最开始的移动sp语句和所有ret前的移动sp语句，存指令选择完成后的stackSize
 
-短路求值（双目&三目）都是用phi实现的——phiInsts中有一部分不是mem2reg生成的而是短路求值直接生成的，这部分不需要rename，但同样需要消除phi
+## inline
 
-没有store过就load的一定是无用的load。直接删去load
+在 IR 上做
 
-phi指令中涉及到某前驱分支里没有store过的变量，该分支的值为0（其实不会用到）
+- count calling_time：在每个 FuncDef 中保存 calling_time 和 called_time
+- 再遍历一遍所有callInst，对需要inline的callee inline
 
+### 判断是否inline
+
+只要满足任意一条就 inline：
+1. callee.calling_times == 0
+2. callee.called_times == 1
+
+### 实现inline
+
+需要修改：
+1. callee 的 entry block 直接接在 caller 的 callInst 后面
+2. callee 的 exit block 的 retInst 替换为 jump 到 caller 的 callInst 后面的指令
+3. 指令的返回值用 phiInst 解决
+3. 修改 callee 的 block 的前驱和后继
+4. 修改 callee 的 block_name 和 var_name，避免重名
+5. 修改 calling_times 和 called_times
+
+为了避免多次inline导致的block/var重名，维护一个全局的inline_cnt，每次inline后加一
+
+- block 改名为：block_name.callee_name.inline_cnt
+- var（除函数形参外）改名为：var_name.callee_name.inline_cnt
+- 新建的 caller 的返回过去的 block 命名为：callee_name.ret.inline_cnt
+
+参数和返回值的处理：
+
+- 参数：一开始就建立一个 callee.arg->caller.arg 的 map，在后续复制inst的过程中检查并替换
+- 返回值：复制完 callee 以后，再新开一个block，第一句语句是 phi，接受返回值（如果有）接下来是原 callinst 后的所有 inst
+
+block 之间的链接
+
+- 建立一个 callee.block->caller.newblock 的 map
+- 每复制一个block，就找到它的pred/succ中所有已经复制了的block并建立链接
+- entry block和caller block连接
+- 所有 exitblock 和 后面的那个 caller block（以phi开头的）连接
+
+实现：
+
+1. 建立好两个 map
+2. 建立好 retblock，并链接好 succs，删去 caller_block 的 succs
+3. 先遍历一遍所有block，建立好blockMap
+1. 复制 callee 的每一个 block，并且 connect blocks：
+   3. 复制 inst，替换 var（改名/换成形参
+   4. 如果 exitInst 是 ret 还要进一步处理
+      1. 替换为 jump 到 retBlock
+      2. 保存返回值和当前block（为phi做准备）
+1. 加入phiInst
+1. 把call以后的指令放到retblock里
+2. 在 原本的 block 中删去 call 及以后的inst
+2. 加入 retblock
+2. inline_cnt++

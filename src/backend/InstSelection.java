@@ -261,7 +261,9 @@ public class InstSelection implements IRVisitor {
   }
   public void visit(IRPhiInst inst) {
     Register result = getIREntity(inst.result);
+    // System.err.println("InstSelection.visit(IRPhiInst): " + inst.toString());
     for (var block : inst.blocks) {
+      // System.err.println("InstSelection.visit(IRPhiInst): " + block.label);
       currentBlock = blocks.get(block.label);
       var exitInst = currentBlock.insts.get(currentBlock.insts.size() - 1);
       if (exitInst instanceof ASMBranchInst || exitInst instanceof ASMJInst || exitInst instanceof ASMRetInst)

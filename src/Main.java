@@ -37,15 +37,18 @@ public class Main {
     IRProgram irProgram = new IRProgram();
     new IRBuilder(irProgram, globalScope).visit(ast);
     new IROptimize(irProgram).work();
-//    System.out.write(irProgram.toString().getBytes());
-    ASMProgram asmProgram = new ASMProgram();
-    new InstSelection(asmProgram).visit(irProgram);
-//    System.out.write(asmProgram.toString().getBytes());
-    new DeadCodeElimination(asmProgram).work();
+    // System.out.write(irProgram.toString().getBytes());
+    new Inliner(irProgram).work();
+    System.out.write(irProgram.toString().getBytes());
+
+    // ASMProgram asmProgram = new ASMProgram();
+    // new InstSelection(asmProgram).visit(irProgram);
+    // System.out.write(asmProgram.toString().getBytes());
+    // new DeadCodeElimination(asmProgram).work();
 //    System.out.write(asmProgram.toString().getBytes());
 
-    new RegAllocation(asmProgram).work();
-    new StackManager(asmProgram).work();
-    System.out.write(asmProgram.toString().getBytes());
+    // new RegAllocation(asmProgram).work();
+    // new StackManager(asmProgram).work();
+    // System.out.write(asmProgram.toString().getBytes());
   }
 }
