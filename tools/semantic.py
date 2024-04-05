@@ -3,7 +3,7 @@
 import os
 import subprocess
 
-test_cases_dir = ".\\testcases\\sema\\"
+test_cases_dir = "../testcases/optim-new"
 # compile_command = "bash ./build.bash"
 execute_command = "D:\\Java\\bin\\java.exe \"-javaagent:D:\\IntelliJ IDEA 2023.1.3\\lib\\idea_rt.jar=27721:D:\\IntelliJ IDEA 2023.1.3\\bin\" -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -classpath D:\\compiler\\MxCompiler\\out\\production\\MxCompiler;C:\\Users\\李心瑶\\Downloads\\antlr-4.13.0-complete.jar Main"
 test_start = ""

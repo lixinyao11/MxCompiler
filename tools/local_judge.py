@@ -6,14 +6,14 @@ import os, time
 """
     Modify following configurations to adapt to your environment.
 """
-test_cases_dir = '../testcases/semantic/'
+test_cases_dir = '../testcases/optim-new/'
 # test_cases_dir = '../testcases/codegen/'
 # test_cases_dir = '../testcases/optim/'
-compile_cmd = "bash ../build.bash"
-execute_cmd = "bash ../semantic.bash"
-excluded_test_cases = ["foo.mx"]
+compile_cmd = "cd .. && make"
+execute_cmd = "python3 ./semantic.py"
+excluded_test_cases = []
 ravel_path = "ravel --enable-cache"
-builtin_path = "./builtin/builtin.s"
+builtin_path = "../bin/builtin.s"
 halt_on_3_fails = False
 calculate_score = False
 test_codegen = False

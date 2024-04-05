@@ -37,8 +37,7 @@ public class Main {
     IRProgram irProgram = new IRProgram();
     new IRBuilder(irProgram, globalScope).visit(ast);
     new IROptimize(irProgram).work();
-    // System.out.write(irProgram.toString().getBytes());
-    new Inliner(irProgram).work();
+    // new SCCP(irProgram).work();
     System.out.write(irProgram.toString().getBytes());
 
     // ASMProgram asmProgram = new ASMProgram();
