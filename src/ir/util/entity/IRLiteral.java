@@ -3,9 +3,9 @@ package ir.util.entity;
 import ir.util.IRType;
 
 public class IRLiteral extends IREntity {
-  String value = null; // "1" / "true"->"1" / "null" / "aa"
+  public String value = null; // "1" / "true"->"1" / "null" / "aa"
   // ! 没有"true"只有”1“
-  IRType type = null;
+  public IRType type = null;
 
   public IRLiteral(String value, IRType type) {
     this.value = value;

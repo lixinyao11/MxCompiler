@@ -19,5 +19,29 @@ public class SemiLattice {
         this.value = LatticeValue.CONSTANT;
         this.constant = constant;
     }
+
+    public SemiLattice meet(SemiLattice other) {
+        if (this.value == LatticeValue.TOP) 
+            return other;
+        if (other.value == LatticeValue.TOP) 
+            return this;
+        if (this.value == LatticeValue.BOTTOM) 
+            return this;
+        if (other.value == LatticeValue.BOTTOM)
+            return other;
+        if (this.constant.type.isInt && other.constant.type.isInt 
+            && this.constant.getIntValue() == other.constant.getIntValue()) 
+            return this;
+
+        return new SemiLattice(1); // 如果 !literal.isInt，就认为不相等      
+    }
+
+    public String toString() {
+        if (this.value == LatticeValue.TOP) 
+            return "TOP";
+        if (this.value == LatticeValue.BOTTOM) 
+            return "BOTTOM";
+        return this.constant.toString();
+    }
     
 }
