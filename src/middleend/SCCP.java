@@ -23,6 +23,7 @@ public class SCCP {
     
     public void work() {
         program.functions.forEach((key, func) -> {
+            // System.err.println("SCCP on function " + key);
             workOnFunc(func);
         });
     }
@@ -70,9 +71,19 @@ public class SCCP {
             block.instructions = newInsts;
         });
 
-        // 没有前驱的 block 应该被直接删除，前驱减少了的 block 需要修改 phi
+        // 没有前驱的 block 应该被直接删除（除了entry），前驱减少了的 block 需要修改 phi
         ArrayList<IRBlock> newBody = new ArrayList<>();
         func.body.forEach(block -> {
+            // ! entry 不能删！
+            if (block.label.equals("entry")) {
+                newBody.add(block);
+                return;
+            } else if (block.preds.size() == 0) {
+                // 需要删除，也要修改前驱后继
+                block.succs.forEach(succ -> {
+                    succ.preds.remove(block);
+                });
+            }
             if (block.preds.size() > 0) {
                 block.phiInsts.forEach((key, phi) -> {
                     for (int i = 0; i < phi.blocks.size(); i++) {
@@ -87,6 +98,39 @@ public class SCCP {
             }
         });
         func.body = newBody;
+
+        // ~ 如果只有一句 return 且返回值是 const，且全程无 print/input，直接返回
+        IRRetInst only_return = null;
+        boolean const_flag = false;
+        boolean io_flag = false;
+        for (IRBlock block : func.body) {
+            for (IRInst inst : block.instructions) {
+                if (inst instanceof IRCallInst call) {
+                    if (call.funcName.equals("printf") || call.funcName.equals("sprintf") || 
+                        call.funcName.equals("print") || call.funcName.equals("println") ||
+                        call.funcName.equals("printInt") || call.funcName.equals("printlnInt") ||
+                        call.funcName.equals("getString") || call.funcName.equals("scanf") ||
+                        call.funcName.equals("toString") || call.funcName.equals("getInt")) {
+                        io_flag = true;
+                        break;
+                    }
+                }
+                if (inst instanceof IRRetInst ret) {
+                    if (only_return == null) {
+                        only_return = ret;
+                        const_flag = true;
+                    } else {
+                        const_flag = false;
+                        break;
+                    }
+                }
+            }
+        }
+        if (const_flag == true && io_flag == false && only_return.value instanceof IRLiteral) {
+            func.body = new ArrayList<>();
+            func.body.add(new IRBlock("entry", func, 0));
+            func.body.get(0).addInst(only_return);
+        }
     }
 
     // * 如果 inst 的 result 是 const，返回 true
@@ -133,7 +177,7 @@ public class SCCP {
             });
             getElementPtr.indexs = newIndexs;
         } else if (inst instanceof IRIcmpInst icmp) {
-            if (icmp.result instanceof LocalVar var && isConst(var) != null) return true;
+            if (isConst(icmp.result) != null) return true;
             if (icmp.rhs1 instanceof LocalVar l1 && isConst(l1) != null) 
                 icmp.rhs1 = isConst(l1);
             if (icmp.rhs2 instanceof LocalVar l2 && isConst(l2) != null) 
@@ -165,6 +209,11 @@ public class SCCP {
             SSAValue.put(para.name, new SemiLattice(1));
         }
 
+        // if (func.name.equals("test")) {
+        //     System.err.println("SSAValue:" + SSAValue.toString());
+        //     System.err.println("worklist:" + worklist.toString());
+        // }
+
         while (!worklist.isEmpty()) {
             String var = worklist.iterator().next();
             worklist.remove(var);
@@ -177,6 +226,12 @@ public class SCCP {
                             SemiLattice newValue = Interpretation(phi);
                             SSAValue.replace(m, newValue);
                             if (newValue != oldValue) worklist.add(m);
+
+                            // if (func.name.equals("test")) {
+                            //     System.err.println("inst:" + phi.toString());
+                            //     System.err.println("SSAValue:" + SSAValue.toString());
+                            //     System.err.println("worklist:" + worklist.toString());
+                            // }
                         }
                     }
                 });
@@ -188,6 +243,12 @@ public class SCCP {
                             SemiLattice newValue = Interpretation(stmt);
                             SSAValue.replace(m, newValue);
                             if (newValue != oldValue) worklist.add(m);
+
+                            // if (func.name.equals("test")) {
+                            //     System.err.println("inst:" + stmt.toString());
+                            //     System.err.println("SSAValue:" + SSAValue.toString());
+                            //     System.err.println("worklist:" + worklist.toString());
+                            // }
                         }
                     }
                 });

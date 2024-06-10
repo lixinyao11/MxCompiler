@@ -135,11 +135,20 @@ public class Inliner {
         // copy instructions and maintain block connections
         for (IRBlock calleeBlock : calleeFunc.body) {
             IRBlock newBlock = blockMap.get(calleeBlock);
-            // connect blocks：只看 preds
-            for (IRBlock pred : calleeBlock.preds) {
-                assert blockMap.containsKey(pred);
-                newBlock.preds.add(blockMap.get(pred));
-                blockMap.get(pred).succs.add(newBlock);
+            // 先 connect entry block
+            if (calleeBlock.label.equals("entry")) {
+                for (IRBlock succ : calleeBlock.succs) {
+                    assert blockMap.containsKey(succ);
+                    newBlock.succs.add(blockMap.get(succ));
+                    blockMap.get(succ).preds.add(newBlock);
+                }
+            } else {
+                // connect blocks：只看 preds
+                for (IRBlock pred : calleeBlock.preds) {
+                    assert blockMap.containsKey(pred);
+                    newBlock.preds.add(blockMap.get(pred));
+                    blockMap.get(pred).succs.add(newBlock);
+                }
             }
             // ! phiInsts 不在 instructions 里！要先单独处理
             for (IRInst inst : calleeBlock.phiInsts.values()) {
